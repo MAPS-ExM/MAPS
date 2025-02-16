@@ -22,7 +22,6 @@ class FineTuneDataset(Dataset):
         data_stride: Tuple[int] = (16, 128, 128),
         mode: str = "train",
         extract_channel: Optional[int] = None,
-        path_preds="",
     ):
         coords = [f.file[f.file.find("_nhs") :] for f in file_list]
         coords = [c[5:-4].split("_") for c in coords]
@@ -179,7 +178,6 @@ class FineTuneCellData(pl.LightningDataModule):
             data_stride=self.data_stride,
             mode="train",
             extract_channel=self.extract_channel,
-            path_preds=path_preds,
         )
         if self.test_files:
             self.test_data = FineTuneDataset(
@@ -188,7 +186,6 @@ class FineTuneCellData(pl.LightningDataModule):
                 data_stride=self.data_stride,
                 mode="test",
                 extract_channel=self.extract_channel,
-                path_preds=path_preds,
             )
 
     def train_dataloader(self):
