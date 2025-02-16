@@ -10,49 +10,31 @@ import json
 from typing import Union
 from einops import rearrange
 from skimage.morphology import isotropic_dilation
-from skimage.transform import resize
 from torch.utils.data import DataLoader, Dataset
 
-PATH_ORG = '/well/rittscher/projects/PanVision/data/FullStacks/Originals/MouseKidney_April2024'
+PATH_ORG = "/well/rittscher/projects/PanVision/data/FullStacks/Originals/MouseKidney_April2024"
 # PATH_ORG = '/well/rittscher/projects/PanVision/data/FullStacks/Originals/MouseKidney_May2024'
-PATH_PRED = '/well/rittscher/users/jyo949/tmp/KidneyTest/MajorityVote/'
-PATH_PRED_OUTLINE = '/well/rittscher/users/jyo949/AntiBodySegKidney/results/combined/'
+PATH_PRED = "/well/rittscher/users/jyo949/tmp/KidneyTest/MajorityVote/"
+PATH_PRED_OUTLINE = "/well/rittscher/users/jyo949/AntiBodySegKidney/results/combined/"
 
 
-@dataclass
-class Sample:
-    file: str
-    path_nhs: str
-    path_pred_outline: str
-    path_pred_inner: str
-
-
-@dataclass
-class FileRecord:
-    file_name: str
-    path_base: str
-    file_outline_pred: str
-    path_outline_pred: str
-    file_inner_pred: str
-    path_inner_pred: str
-    nhs_lower: Union[int, float]
-    nhs_upper: Union[int, float]
+from MAPS.NoisyImmunolabeling.data import Sample, FileRecord
 
 
 def read_data_config(dataset_config) -> List[FileRecord]:
-    with open(dataset_config, 'r') as file:
+    with open(dataset_config, "r") as file:
         data = json.load(file)
 
     records = []
     for record in data:
         records.append(
             FileRecord(
-                file_name=record['file_name'],
-                path_base=record['path_base'],
-                file_outline_pred=record['file_outline_pred'],
-                path_outline_pred=record['path_outline_pred'],
-                file_inner_pred=record['file_inner_pred'],
-                path_inner_pred=record['path_inner_pred'],
+                file_name=record["file_name"],
+                path_base=record["path_base"],
+                file_outline_pred=record["file_outline_pred"],
+                path_outline_pred=record["path_outline_pred"],
+                file_inner_pred=record["file_inner_pred"],
+                path_inner_pred=record["path_inner_pred"],
             )
         )
     return records
@@ -65,7 +47,7 @@ class InitAdoptDataset(Dataset):
         #  targets_path_list: Optional[List[str]] = None,
         training_size: Tuple[int] = (32, 256, 256),
         data_stride: Tuple[int] = (16, 128, 128),
-        mode: str = 'train',
+        mode: str = "train",
         extract_channel: Optional[int] = None,
         outline_dilation: int = 14,
     ):
@@ -77,7 +59,7 @@ class InitAdoptDataset(Dataset):
         self.training_size = training_size
         self.data_stride = data_stride
         self.mode = mode
-        assert self.mode in ['train', 'val', 'test'], f'Unvalid mode parameter: {mode}'
+        assert self.mode in ["train", "val", "test"], f"Unvalid mode parameter: {mode}"
 
         self.img_list = []
         self.target_list = []
@@ -97,28 +79,32 @@ class InitAdoptDataset(Dataset):
 
             # When we load in the full data, we often want to extract a specific channel (mostly NHS, i.e. channel 2)
             if extract_channel is not None:
+                assert len(cur_image.shape) == 4, (
+                    f"Unexpected image shape ({cur_image.shape}) when extracting channel {extract_channel}"
+                )
                 channel_dim = np.argmin(cur_image.shape)  # We assume that the channel dimension is the smallest
                 cur_image = np.take(cur_image, indices=extract_channel, axis=channel_dim)
+            assert len(cur_image.shape) == 3, f"Unexpected image shape ({cur_image.shape})"
 
             # Load the target if its present (won't be if we use the BasicDataset for inference)
             try:
                 self.target_set = skimage.io.imread(target_path).astype(
-                    'uint8'
+                    "uint8"
                 )  # /255 # Empty masks get loaded as uint16 for some reason
                 outline = skimage.io.imread(outline_path)
                 if outline_dilation > 0:
                     outline = np.stack([isotropic_dilation(s, outline_dilation) for s in outline], axis=0)
                 self.target_set[outline == 0] = 0
             except FileNotFoundError:
-                print(f'No file found for {target_path}')
-                self.target_set = np.zeros_like(cur_image).astype('float')
+                print(f"No file found for {target_path}")
+                self.target_set = np.zeros_like(cur_image).astype("float")
 
             # Preprocess the data and normalise the data -> 0-1
             # For the training mode, we precompute the cut-off quantiles (acts as augmentation)
             # Otherwise, if no threshold config file is given which specifies a specific max value,
             # we compute the 99% quantile and set this to 1
             # Specifically for the 2nd batch we need to give hand-picked thresholds as the data looks very different
-            if self.mode == 'train':
+            if self.mode == "train":
                 self.upper_quantiles = [0.985, 0.9875, 0.99, 0.9925, 0.995, 0.9975, 0.999]
                 self.lower_quantiles = [0.0001, 0.001, 0.0025, 0.005, 0.006, 0.0076]
                 all_quantiles = np.quantile(cur_image, q=self.lower_quantiles + self.upper_quantiles)
@@ -155,7 +141,7 @@ class InitAdoptDataset(Dataset):
             z_range[0] : z_range[1], x_range[0] : x_range[1], y_range[0] : y_range[1]
         ].clone()
 
-        if self.mode == 'train':
+        if self.mode == "train":
             # Flipping - data augmentation
             flip_data = np.random.rand(3) > 0.5
             for dim in range(3):
@@ -175,14 +161,14 @@ class InitAdoptDataset(Dataset):
         img = InitAdoptDataset.rearrange_shape(img)
         target = InitAdoptDataset.rearrange_shape_target(target)
 
-        return {'image': img, 'target': target}
+        return {"image": img, "target": target}
 
     @staticmethod
     def rearrange_shape(img_trans):
         if len(img_trans.shape) == 3:
             img_trans = img_trans[..., None]
         # HWC to CHW
-        img_trans = rearrange(img_trans, 'Z X Y C-> C Z X Y')
+        img_trans = rearrange(img_trans, "Z X Y C-> C Z X Y")
 
         return img_trans
 
@@ -197,7 +183,7 @@ class InitAdoptDataset(Dataset):
             target = target[..., None]
 
         # HWC to CHW
-        target = rearrange(target, 'Z X Y C-> C Z X Y')
+        target = rearrange(target, "Z X Y C-> C Z X Y")
         return target
 
 
@@ -208,7 +194,7 @@ class KidneyPredictDataset(Dataset):
         #  targets_path_list: Optional[List[str]] = None,
         training_size: Tuple[int] = (32, 256, 256),
         data_stride: Tuple[int] = (16, 128, 128),
-        mode: str = 'train',
+        mode: str = "train",
         extract_channel: Optional[int] = None,
     ):
         self.imgs_path_list = imgs_path_list
@@ -226,23 +212,23 @@ class KidneyPredictDataset(Dataset):
         for file_id in range(0, len(self.imgs_path_list)):
             # Read files
             imgs_path = self.imgs_path_list[file_id]
-
-            try:
-                cur_image = skimage.io.imread(imgs_path)
-            except FileNotFoundError:
-                cur_image = skimage.io.imread(imgs_path.replace('April', 'May'))
+            cur_image = skimage.io.imread(imgs_path)
 
             # When we load in the full data, we often want to extract a specific channel (mostly NHS, i.e. channel 2)
             if extract_channel is not None:
+                assert len(cur_image.shape) == 4, (
+                    f"Unexpected image shape ({cur_image.shape}) when extracting channel {extract_channel}"
+                )
                 channel_dim = np.argmin(cur_image.shape)  # We assume that the channel dimension is the smallest
                 cur_image = np.take(cur_image, indices=extract_channel, axis=channel_dim)
+            assert len(cur_image.shape) == 3, f"Unexpected image shape ({cur_image.shape})"
 
             # Preprocess the data and normalise the data -> 0-1
             # For the training mode, we precompute the cut-off quantiles (acts as augmentation)
             # Otherwise, if no threshold config file is given which specifies a specific max value,
             # we compute the 99% quantile and set this to 1
             # Specifically for the 2nd batch we need to give hand-picked thresholds as the data looks very different
-            if self.mode == 'train':
+            if self.mode == "train":
                 self.upper_quantiles = [0.985, 0.9875, 0.99, 0.9925, 0.995, 0.9975, 0.999]
                 self.lower_quantiles = [0.0001, 0.001, 0.0025, 0.005, 0.006, 0.0076]
                 all_quantiles = np.quantile(cur_image, q=self.lower_quantiles + self.upper_quantiles)
@@ -275,7 +261,7 @@ class KidneyPredictDataset(Dataset):
         # Extract image sets
         img = self.img_list[file_id][z_range[0] : z_range[1], x_range[0] : x_range[1], y_range[0] : y_range[1]].clone()
 
-        if self.mode == 'train':
+        if self.mode == "train":
             # Flipping - data augmentation
             flip_data = np.random.rand(3) > 0.5
             for dim in range(3):
@@ -293,14 +279,14 @@ class KidneyPredictDataset(Dataset):
 
         img = InitAdoptDataset.rearrange_shape(img)
 
-        return {'image': img}
+        return {"image": img}
 
     @staticmethod
     def rearrange_shape(img_trans):
         if len(img_trans.shape) == 3:
             img_trans = img_trans[..., None]
         # HWC to CHW
-        img_trans = rearrange(img_trans, 'Z X Y C-> C Z X Y')
+        img_trans = rearrange(img_trans, "Z X Y C-> C Z X Y")
 
         return img_trans
 
@@ -333,7 +319,7 @@ class CellData(pl.LightningDataModule):
             self.train_files,
             training_size=self.training_size,
             data_stride=self.data_stride,
-            mode='train',
+            mode="train",
             extract_channel=self.extract_channel,
             outline_dilation=outline_dilation,
         )
@@ -342,7 +328,7 @@ class CellData(pl.LightningDataModule):
                 self.test_files,
                 training_size=self.training_size,
                 data_stride=self.data_stride,
-                mode='test',
+                mode="test",
                 extract_channel=self.extract_channel,
             )
 

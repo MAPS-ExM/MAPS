@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch.nn.modules.loss import _Loss
 from torch.optim.lr_scheduler import StepLR
-from UNetFactory import SegmentatorNetwork, UNet
+from MAPS.utils import SegmentatorNetwork, UNet
 
 
 class DiceLoss(_Loss):
@@ -40,7 +40,7 @@ class DiceLoss(_Loss):
         Reference
             https://github.com/BloodAxe/pytorch-toolbelt
         """
-        assert mode in {'binary', 'multilabel', 'multiclass'}
+        assert mode in {"binary", "multilabel", "multiclass"}
         super(DiceLoss, self).__init__()
         self.mode = mode
 
@@ -57,7 +57,7 @@ class DiceLoss(_Loss):
             # Apply activations to get [0..1] class probabilities
             # Using Log-Exp as this gives more numerically stable result and does not cause vanishing gradient on
             # extreme values 0 and 1
-            if self.mode == 'multiclass':
+            if self.mode == "multiclass":
                 y_pred = y_pred.log_softmax(dim=1).exp()
             else:
                 y_pred = F.logsigmoid(y_pred).exp()
@@ -67,7 +67,7 @@ class DiceLoss(_Loss):
         dims = (0, 2)
 
         # breakpoint()
-        if self.mode == 'binary':
+        if self.mode == "binary":
             y_true = y_true.view(bs, 1, -1)
             y_pred = y_pred.view(bs, 1, -1)
 
@@ -76,7 +76,7 @@ class DiceLoss(_Loss):
                 y_pred = y_pred * mask
                 y_true = y_true * mask
 
-        if self.mode == 'multiclass':
+        if self.mode == "multiclass":
             y_true = y_true.view(bs, -1)
             y_pred = y_pred.view(bs, num_classes, -1)
 
@@ -90,7 +90,7 @@ class DiceLoss(_Loss):
                 y_true = F.one_hot(y_true, num_classes)  # N,H*W -> N,H*W, C
                 y_true = y_true.permute(0, 2, 1)  # N, C, H*W
 
-        if self.mode == 'multilabel':
+        if self.mode == "multilabel":
             y_true = y_true.view(bs, num_classes, -1)
             y_pred = y_pred.view(bs, num_classes, -1)
 
@@ -141,7 +141,7 @@ class DiceLoss(_Loss):
         return dice_score
 
 
-class Model(pl.LightningModule):
+class FineTuneModel(pl.LightningModule):
     def __init__(self, lr=1e-4, weight_decay=1e-4, n_classes=5):
         super().__init__()
         self.save_hyperparameters()
@@ -149,12 +149,12 @@ class Model(pl.LightningModule):
             encoder_channels=[1, 64, 128, 256, 512],
             decoder_channels=[512, 256, 128, 64, 32, 1],
             residual=True,
-            type='3D',
+            type="3D",
         )
         self.segmentation_head = SegmentatorNetwork(n_classes, in_classes=32)
         # self.loss = torch.nn.CrossEntropyLoss()
         self.ignore_index = 6
-        self.loss = DiceLoss(mode='multiclass', ignore_index=self.ignore_index)
+        self.loss = DiceLoss(mode="multiclass", ignore_index=self.ignore_index)
         self.weight_decay = weight_decay
         self.lr = lr
         self.epoch = 0
@@ -163,7 +163,7 @@ class Model(pl.LightningModule):
         return self.segmentation_head(self.embedding_network(x))
 
     def comp_loss(self, batch):
-        x, y = batch['image'], batch['target'].squeeze(1).long()
+        x, y = batch["image"], batch["target"].squeeze(1).long()
         y[y == 5] = 6
         pred = self.segmentation_head(self.embedding_network(x))
         loss = self.loss(pred, y)
@@ -171,16 +171,16 @@ class Model(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss = self.comp_loss(batch)
-        self.log('train_loss', loss, prog_bar=True, logger=True)
+        self.log("train_loss", loss, prog_bar=True, logger=True)
         return loss
 
     def on_train_epoch_end(self) -> None:
-        print(time.strftime(f'%d/%m/%Y %H:%M:%S Epoch {self.epoch} finished'))
+        print(time.strftime(f"%d/%m/%Y %H:%M:%S Epoch {self.epoch} finished"))
         self.epoch += 1
 
     def validation_step(self, batch, batch_idx):
         loss = self.comp_loss(batch)
-        self.log('val_loss', loss, prog_bar=True, logger=True)
+        self.log("val_loss", loss, prog_bar=True, logger=True)
         return loss
 
     def predict(self, x):
@@ -189,8 +189,8 @@ class Model(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         scheduler = {
-            'scheduler': StepLR(optimizer, step_size=10, gamma=0.1),  # Stepwise scheduler after 5 epochs
-            'interval': 'epoch',
-            'frequency': 1,
+            "scheduler": StepLR(optimizer, step_size=10, gamma=0.1),  # Stepwise scheduler after 5 epochs
+            "interval": "epoch",
+            "frequency": 1,
         }
         return [optimizer], [scheduler]

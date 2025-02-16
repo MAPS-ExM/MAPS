@@ -1,27 +1,20 @@
 import os
 import json
 from multiprocessing import Pool
-from typing import List, Optional, Tuple, Union
-from dataclasses import dataclass
+from typing import List, Tuple
 import numpy as np
 import tifffile
 import torch
 from skimage import morphology
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 
 
-@dataclass
-class FileRecord:
-    file_name: str
-    path_base: str
-    ab_threshold: int
-    nhs_lower: Union[int, float]
-    nhs_upper: Union[int, float]
+from MAPS.NoisyImmunolabeling.data import FileRecord
 
 
 def load_ab_dilated(ab, path):
     if not os.path.exists(path):
-        ab_dil = np.zeros_like(ab).astype('int')
+        ab_dil = np.zeros_like(ab).astype("int")
         # You might want to fine-tune these parameters to your dataset! This is $R_\tau$ in the paper
         # It really depends on what your immunolabelling looks like. This is what worked for a
         # Mix of Mic60 and CoxIV for mitochondria in mouse kidney tissue.
@@ -36,7 +29,7 @@ def load_ab_dilated(ab, path):
 
         if not os.path.exists(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path), exist_ok=True)
-        tifffile.imwrite(path, ab_dil.astype('uint8'), compression='zlib')
+        tifffile.imwrite(path, ab_dil.astype("uint8"), compression="zlib")
     else:
         ab_dil = tifffile.imread(path)
     return ab_dil
@@ -48,21 +41,21 @@ class BasicDataset(Dataset):
         img_records: List[FileRecord],
         training_size: Tuple[int] = (16, 256, 256),
         data_stride: Tuple[int] = (8, 128, 128),
-        mode: str = 'train',
+        mode: str = "train",
     ):
         self.imgs_path_list = [os.path.join(file.path_base, file.file_name) for file in img_records]
         self.dilated_ab_list = [
             os.path.join(
                 file.path_base,
-                'DilatedAntiBodyMask',
-                file.file_name.replace('.tif', f'_dil_{file.ab_threshold}_new.tif'),
+                "DilatedAntiBodyMask",
+                file.file_name.replace(".tif", f"_dil_{file.ab_threshold}_new.tif"),
             )
             for file in img_records
         ]
         self.training_size = training_size
         self.data_stride = data_stride
         self.mode = mode
-        assert self.mode in ['train', 'val', 'test'], f'Unvalid mode parameter: {mode}'
+        assert self.mode in ["train", "val", "test"], f"Unvalid mode parameter: {mode}"
 
         self.img_list = []
         self.ab_list = []
@@ -87,14 +80,14 @@ class BasicDataset(Dataset):
 
             cur_ab = cur_ab > img_records[file_id].ab_threshold
 
-            cur_ab_dilated = load_ab_dilated(cur_ab, dilated_ab_path).astype('uint8')
+            cur_ab_dilated = load_ab_dilated(cur_ab, dilated_ab_path).astype("uint8")
             cur_ab[cur_ab_dilated == 0] = 0
 
             # Preprocess the data and normalise the data -> 0-1
             # For the training mode, we precompute the cut-off quantiles (acts as augmentation)
             # Otherwise, if no threshold config file is given which specifies a specific max value,
             # we compute the 99% quantile and set this to 1
-            if self.mode == 'train':
+            if self.mode == "train":
                 self.nhs_quantiles[file_id] = np.quantile(
                     cur_image, q=[0.9875, 0.99, 0.9925, 0.994, 0.995, 0.996, 0.9975]
                 )
@@ -164,7 +157,7 @@ class BasicDataset(Dataset):
             z_range[0] : z_range[1], x_range[0] : x_range[1], y_range[0] : y_range[1]
         ].clone()
 
-        if self.mode == 'train':
+        if self.mode == "train":
             # Flipping - data augmentation
             flip_data = np.random.rand(3) > 0.5
             for dim in range(3):
@@ -189,24 +182,24 @@ class BasicDataset(Dataset):
 
 
 def read_data_config(dataset_config) -> List[FileRecord]:
-    with open(dataset_config, 'r') as file:
+    with open(dataset_config, "r") as file:
         data = json.load(file)
 
     records = []
     for record in data:
         records.append(
             FileRecord(
-                file_name=record['file_name'],
-                path_base=record['path_base'],
-                ab_threshold=record['ab_threshold'],
-                nhs_lower=record['nhs_lower'],
-                nhs_upper=record['nhs_upper'],
+                file_name=record["file_name"],
+                path_base=record["path_base"],
+                ab_threshold=record["ab_threshold"],
+                nhs_lower=record.get("nhs_lower", 0.005),
+                nhs_upper=record.get("nhs_upper", 0.995),
             )
         )
     return records
 
 
-def build_data(dataset_config=''):
+def build_data(dataset_config=""):
     """
     Expects path as dataset_config to a .json file specifiying the dataset with entries looking like
         {
@@ -230,7 +223,7 @@ def build_data(dataset_config=''):
         img_records=records,
         training_size=(16, 256, 256),  # Check your GPU memory
         data_stride=(8, 128, 128),
-        mode='train',
+        mode="train",
     )
 
     return dataset

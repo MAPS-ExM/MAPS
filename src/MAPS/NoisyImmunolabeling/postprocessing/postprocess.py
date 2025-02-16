@@ -1,7 +1,3 @@
-"""
-subJob --env 'light2' --n_gpus 0 --gpu_type 'none' --memory 150 postprocess.py
-"""
-
 import os
 from pathlib import Path
 import tifffile
@@ -10,19 +6,21 @@ from skimage.morphology import binary_closing, binary_opening, binary_dilation, 
 from skimage.segmentation import expand_labels
 from scipy import ndimage
 import numpy as np
-import matplotlib.pyplot as plt
 from numba import njit
 import time
 
 
-def find_mitos(annotation):
-    # print(f'{time.strftime("%H:%M:%S")} Starting to find separate mitos', flush=True)
+def find_mitos(annotation, verbose=False):
+    if verbose:
+        print(f"{time.strftime('%H:%M:%S')} Starting to find separate mitos", flush=True)
     inner_structure = annotation > 1
     inner_structure = binary_opening(inner_structure, cube(3))
     mitos = skimage.measure.label(inner_structure)
-    # print(f'{time.strftime("%H:%M:%S")} Starting to compute distance transform', flush=True)
+    if verbose:
+        print(f"{time.strftime('%H:%M:%S')} Starting to compute distance transform", flush=True)
     distance = ndimage.distance_transform_cdt(mitos > 0)
-    # print(f'{time.strftime("%H:%M:%S")} Starting to compute watershed', flush=True)
+    if verbose:
+        print(f"{time.strftime('%H:%M:%S')} Starting to compute watershed", flush=True)
     final = skimage.segmentation.watershed(-distance, mitos, mask=annotation > 0)
     return final
 
@@ -38,7 +36,7 @@ def find_ind_extreme_coords(img, n_mitos):
             for k in range(img.shape[2]):
                 cur_label = img[i, j, k]
                 if cur_label != 0:
-                    cur_index = np.array([i, j, k], dtype='float64')
+                    cur_index = np.array([i, j, k], dtype="float64")
                     cur_min, cur_max = indices[cur_label]
                     indices[cur_label, 0] = np.minimum(cur_index, cur_min)
                     indices[cur_label, 1] = np.maximum(cur_index, cur_max)
@@ -51,7 +49,7 @@ def rm_fragments(img, mitos=None, threshold=0.25):
     unique_mitos = np.unique(mitos)
 
     n_mitos = unique_mitos.max() + 1
-    indices = find_ind_extreme_coords(mitos, n_mitos).astype('uint32')
+    indices = find_ind_extreme_coords(mitos, n_mitos).astype("uint32")
 
     fragmented_percantages = []
     counter = 0
@@ -75,7 +73,7 @@ def rm_fragments(img, mitos=None, threshold=0.25):
             img[cmin[0] : cmax[0], cmin[1] : cmax[1], cmin[2] : cmax[2]] = orig_cub
             counter += 1
 
-    print(f'Removed {counter} from {len(unique_mitos)} components because fragmented.')
+    print(f"Removed {counter} from {len(unique_mitos)} components because fragmented.")
     return img, fragmented_percantages
 
 
@@ -85,7 +83,7 @@ def find_ind_to_remove(img, labels_small, n_indices):
     elif len(img.shape) == 2:
         return _find_ind_to_remove2d(img, labels_small, n_indices)
     else:
-        raise ValueError('Image must be 2d or 3d')
+        raise ValueError("Image must be 2d or 3d")
 
 
 @njit
@@ -99,12 +97,12 @@ def _find_ind_to_remove3d(img, labels_small, n_indices):
     the coordinates of an index that should get removed.
     """
     counter = 0
-    indices = np.zeros((n_indices, 3), dtype='uint16')
+    indices = np.zeros((n_indices, 3), dtype="uint16")
     for i in range(img.shape[0]):
         for j in range(img.shape[1]):
             for k in range(img.shape[2]):
                 if labels_small[img[i, j, k]]:
-                    indices[counter] = np.array([i, j, k], dtype='uint16')
+                    indices[counter] = np.array([i, j, k], dtype="uint16")
                     counter += 1
     return indices
 
@@ -120,11 +118,11 @@ def _find_ind_to_remove2d(img, labels_small, n_indices):
     the coordinates of an index that should get removed.
     """
     counter = 0
-    indices = np.zeros((n_indices, 2), dtype='uint16')
+    indices = np.zeros((n_indices, 2), dtype="uint16")
     for i in range(img.shape[0]):
         for j in range(img.shape[1]):
             if labels_small[img[i, j]]:
-                indices[counter] = np.array([i, j], dtype='uint16')
+                indices[counter] = np.array([i, j], dtype="uint16")
                 counter += 1
     return indices
 
@@ -135,13 +133,13 @@ def remove_small_parts(img, mitos=None, threshold=3200):
     which are smaller than <threshold> pixels
     """
     if mitos is None:
-        img_binary = (img > 0).astype('uint8')
+        img_binary = (img > 0).astype("uint8")
         mitos, n_mitos = skimage.measure.label(img_binary, return_num=True)
     _, mito_size = np.unique(mitos, return_counts=True)
 
     labels_small = mito_size < threshold
     n_indices = np.sum(mito_size[mito_size < threshold])
-    print(f'Removing {np.sum(labels_small)} from {len(mito_size)} connected components because size < {threshold}')
+    print(f"Removing {np.sum(labels_small)} from {len(mito_size)} connected components because size < {threshold}")
 
     indices = find_ind_to_remove(mitos, labels_small, n_indices)
     indices = (indices[:, 0], indices[:, 1], indices[:, 2])
@@ -174,6 +172,7 @@ def remove_small_parts_slice(img, threshold=150):
 
 
 def remove_boundary_noise(img, n_pixel):
+    """Sometimes voxel at the very boundy would show artifacts which gets removed here"""
     img[:, :n_pixel] = 0
     img[:, -n_pixel:] = 0
     img[:, :, :n_pixel] = 0
@@ -182,11 +181,14 @@ def remove_boundary_noise(img, n_pixel):
 
 
 def remove_mitos_with_only_or_no_intermembrane(img, mitos, percentage_threshold_upper, percentage_threshold_lower):
-    # mitos = skimage.measure.label(img >0)
+    """
+    Remove artifacts which contain no intermembrane space or only consisten of
+    intermembrane space which is both biologically not meaningful.
+    """
     unique_mitos = np.unique(mitos)
 
     n_mitos = unique_mitos.max() + 1
-    indices = find_ind_extreme_coords(mitos, n_mitos).astype('uint32')
+    indices = find_ind_extreme_coords(mitos, n_mitos).astype("uint32")
     # If there are some mitos deleted and len(unique_mitos) is less than n_mitos
     # I will get RuntimeWarning: invalid value encountered in cast
     # as there will be some inf values in find_ind_extreme_coords) which will be casted to 0
@@ -221,7 +223,7 @@ def remove_mitos_with_only_or_no_intermembrane(img, mitos, percentage_threshold_
             mitos[cmin[0] : cmax[0], cmin[1] : cmax[1], cmin[2] : cmax[2]] = orig_label
             counter += 1
 
-    print(f'Removed {counter} from {len(unique_mitos)} components because no inner structure.')
+    print(f"Removed {counter} from {len(unique_mitos)} components because no inner structure.")
     return img, mitos
 
 
@@ -235,7 +237,7 @@ def close_intermembrane_holes(img, mitos=None):
     unique_mitos = np.unique(mitos)
 
     n_mitos = unique_mitos.max() + 1
-    indices = find_ind_extreme_coords(mitos, n_mitos).astype('uint32')
+    indices = find_ind_extreme_coords(mitos, n_mitos).astype("uint32")
 
     for c_mito_label in unique_mitos[1:]:
         cmin, cmax = indices[c_mito_label]
@@ -279,7 +281,7 @@ def close_background_holes(img, mitos=None):
     unique_mitos = np.unique(mitos)
 
     n_mitos = unique_mitos.max() + 1
-    indices = find_ind_extreme_coords(mitos, n_mitos).astype('uint32')
+    indices = find_ind_extreme_coords(mitos, n_mitos).astype("uint32")
 
     for c_mito_label in unique_mitos[1:]:
         cmin, cmax = indices[c_mito_label]
@@ -332,36 +334,36 @@ def process_file(file, path_source, path_target, fragment_threshold=0.25, plot_h
     time.sleep(os.getpid() % 10 / 10)  # To avoid that all processes start at the same time
     output_file = os.path.join(path_target, file)
     if os.path.exists(output_file):
-        print(f'File {file} already exists and is skipped.')
+        print(f"File {file} already exists and is skipped.")
         return
     else:
         Path(output_file).touch()
-    print(time.strftime('%H:%M:%S'), 'Started: ', file, f'with threshold {fragment_threshold}', flush=True)
+    print(time.strftime("%H:%M:%S"), "Started: ", file, f"with threshold {fragment_threshold}", flush=True)
     img = tifffile.imread(os.path.join(path_source, file))
     img = process_img(img, fragment_threshold=fragment_threshold, plot_hist=plot_hist)
     tifffile.imwrite(
         output_file,
         img,
         imagej=True,
-        metadata={'axes': 'ZYX'},
-        compression='zlib',
+        metadata={"axes": "ZYX"},
+        compression="zlib",
     )
 
-    print(time.strftime('%H:%M:%S'), 'Finished:', file, flush=True)
+    print(time.strftime("%H:%M:%S"), "Finished:", file, flush=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import multiprocessing as mp
     import argparse
 
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--path_source', type=str)
-    argparser.add_argument('--path_target', type=str)
+    argparser.add_argument("--path_source", type=str)
+    argparser.add_argument("--path_target", type=str)
 
     args = argparser.parse_args()
 
-    files = sorted([f for f in os.listdir(args.path_source) if f.endswith('.tif') and not f.startswith('.')])
-    print(f'Files to process: {len(files)}')
+    files = sorted([f for f in os.listdir(args.path_source) if f.endswith(".tif") and not f.startswith(".")])
+    print(f"Files to process: {len(files)}")
 
     if not os.path.exists(args.path_target):
         os.makedirs(args.path_target, exist_ok=True)

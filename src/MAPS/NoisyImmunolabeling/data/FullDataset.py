@@ -1,5 +1,4 @@
 import os
-import sys
 from multiprocessing import Manager, Process
 
 import numpy as np
@@ -7,11 +6,10 @@ import tifffile
 import torch
 from scipy.ndimage import distance_transform_cdt, value_indices
 from skimage.measure import label, regionprops
-from skimage.morphology import binary_dilation, disk, isotropic_dilation
+from skimage.morphology import isotropic_dilation
 from torch.utils.data import Dataset
 
-sys.path.append('../')
-from data.Data3D import BasicDataset
+from MAPS.NoisyImmunolabeling.data import BasicDataset
 
 
 def remove_holes(pred, hole_area_threshold=7500):
@@ -43,28 +41,28 @@ class SingleDataSet:
         mask_pixel_reduction=0,
         mask_pixel_expansion=0,
         submask=None,
-        path_base='',
+        path_base="",
         hole_size=6000,
     ):
         self.dataset = BasicDataset(
-            imgs_path_list, training_size=size, data_stride=stride, mode='test', path_base=path_base
+            imgs_path_list, training_size=size, data_stride=stride, mode="test", path_base=path_base
         )
         self.dataset.ab_list = None
         self.ab_dilated_list = None
         try:
-            self.files_predictions = [os.path.join(pred_dir, f.replace('.tif', 'pred_bin.tif')) for f in imgs_path_list]
+            self.files_predictions = [os.path.join(pred_dir, f.replace(".tif", "pred_bin.tif")) for f in imgs_path_list]
             self.predictions = [torch.from_numpy(tifffile.imread(f) > 0) for f in self.files_predictions]
         except FileNotFoundError:
-            self.files_predictions = [os.path.join(pred_dir, f.replace('.tif', '_bin.tif')) for f in imgs_path_list]
+            self.files_predictions = [os.path.join(pred_dir, f.replace(".tif", "_bin.tif")) for f in imgs_path_list]
             self.predictions = [torch.from_numpy(tifffile.imread(f) > 0) for f in self.files_predictions]
         if hole_size > 0:
             self.predictions = [remove_holes(p, hole_size) for p in self.predictions]
-        self.files = [f.split('/')[-1] for f in imgs_path_list]
+        self.files = [f.split("/")[-1] for f in imgs_path_list]
 
         for i in range(len(self.dataset.img_list)):
-            assert (
-                self.dataset.img_list[i].shape == self.predictions[i].shape
-            ), f'Shapes do not match for {self.dataset.img_list[i]} and {self.predictions[i]}'
+            assert self.dataset.img_list[i].shape == self.predictions[i].shape, (
+                f"Shapes do not match for {self.dataset.img_list[i]} and {self.predictions[i]}"
+            )
 
         if mask_pixel_reduction > 0:
             for i in range(len(self.predictions)):
@@ -124,34 +122,34 @@ class FullDataset(Dataset):
         mask_pixel_reduction=5,
         mask_pixel_expansion=0,
         submask=None,
-        batch='D6',
+        batch="D6",
         n_files=6,
         hole_size=0,
     ):
-        path_base = '/well/rittscher/projects/PanVision/data/FullStacks/Originals/MouseKidney_April2024'
+        path_base = "/well/rittscher/projects/PanVision/data/FullStacks/Originals/MouseKidney_April2024"
         wt_list = sorted(
             [
                 f
                 for f in os.listdir(path_base)
-                if 'WT' in f and f.endswith('.tif') and batch in f and not f.startswith('.')
+                if "WT" in f and f.endswith(".tif") and batch in f and not f.startswith(".")
             ]
         )[:n_files]
         aki_list = sorted(
             [
                 f
                 for f in os.listdir(path_base)
-                if 'AKI' in f and f.endswith('.tif') and batch in f and not f.startswith('.')
+                if "AKI" in f and f.endswith(".tif") and batch in f and not f.startswith(".")
             ]
         )[:n_files]
-        print(f'WT files: {wt_list}')
-        print(f'AKI files: {aki_list}')
+        print(f"WT files: {wt_list}")
+        print(f"AKI files: {aki_list}")
 
         # Define functions for parallel execution
         manager = Manager()
         datasets = manager.dict()
 
         def process_aki():
-            datasets['aki_dataset'] = SingleDataSet(
+            datasets["aki_dataset"] = SingleDataSet(
                 aki_list,
                 pred_dir=pred_dir_aki,
                 size=size,
@@ -165,7 +163,7 @@ class FullDataset(Dataset):
             )
 
         def process_wt():
-            datasets['wt_dataset'] = SingleDataSet(
+            datasets["wt_dataset"] = SingleDataSet(
                 wt_list,
                 pred_dir=pred_dir_wt,
                 size=size,
@@ -188,8 +186,8 @@ class FullDataset(Dataset):
         p1.join()
         p2.join()
         # Assign datasets from the shared dictionary to attributes
-        self.aki_dataset = datasets['aki_dataset']
-        self.wt_dataset = datasets['wt_dataset']
+        self.aki_dataset = datasets["aki_dataset"]
+        self.wt_dataset = datasets["wt_dataset"]
 
         self.n_aki_dataset = len(self.aki_dataset)
 

@@ -14,7 +14,7 @@ class OutConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(OutConv, self).__init__()
         self.conv = nn.Conv3d(in_channels, out_channels, kernel_size=1)
-        nn.init.kaiming_uniform_(self.conv.weight, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.conv.weight, mode="fan_in", nonlinearity="relu")
 
     def forward(self, x):
         return self.conv(x)
@@ -33,13 +33,13 @@ class SegmentatorNetwork(nn.Module):
 
 
 class CustModule(nn.Module):
-    def __init__(self, type: str = '2D'):
+    def __init__(self, type: str = "2D"):
         super().__init__()
         self.layers = nn.Identity()
-        self.Conv = nn.Conv2d if type == '2D' else nn.Conv3d
-        self.BatchNorm = nn.BatchNorm2d if type == '2D' else nn.BatchNorm3d
-        self.MaxPool = nn.MaxPool2d if type == '2D' else nn.MaxPool3d
-        self.ConvTranspose = nn.ConvTranspose2d if type == '2D' else nn.ConvTranspose3d
+        self.Conv = nn.Conv2d if type == "2D" else nn.Conv3d
+        self.BatchNorm = nn.BatchNorm2d if type == "2D" else nn.BatchNorm3d
+        self.MaxPool = nn.MaxPool2d if type == "2D" else nn.MaxPool3d
+        self.ConvTranspose = nn.ConvTranspose2d if type == "2D" else nn.ConvTranspose3d
 
     def pool_down_kernel(self, depth_down: bool = True):
         if depth_down:
@@ -47,11 +47,11 @@ class CustModule(nn.Module):
         else:
             return 1, 2, 2
 
-    def convTransParam(self, type='2D', depth_up=True):
+    def convTransParam(self, type="2D", depth_up=True):
         if depth_up:
-            return {'kernel_size': 2, 'stride': 2}
+            return {"kernel_size": 2, "stride": 2}
         else:
-            return {'kernel_size': (1, 2, 2), 'stride': (1, 2, 2)}
+            return {"kernel_size": (1, 2, 2), "stride": (1, 2, 2)}
 
     def forward(self, x, cat_embedding=None):
         if cat_embedding is None:
@@ -70,7 +70,7 @@ def UNetFactory(ConvLayer):
             self,
             in_c: int,
             out_c: int,
-            type: int = '2D',
+            type: int = "2D",
             depth_downsample: bool = True,
             residual=False,
             cat_emb_dim=None,
@@ -83,16 +83,16 @@ def UNetFactory(ConvLayer):
             return self.conv_layer(self.down_pool(x), cat_embedding)
 
     class Encoder(CustModule):
-        def __init__(self, channels, type='2D', depth_downsample=None, residual=False, cat_emb_dim=None):
+        def __init__(self, channels, type="2D", depth_downsample=None, residual=False, cat_emb_dim=None):
             super().__init__(type)
             self.channels = channels
             self.depth_downsample = (
-                depth_downsample if (type == '3D' and depth_downsample is not None) else [True] * (len(channels) - 2)
+                depth_downsample if (type == "3D" and depth_downsample is not None) else [True] * (len(channels) - 2)
             )
             self.layers = nn.ModuleDict(
                 {
                     # TODO: Is this a bug that I do use the OGConvLayer here with batch norm or do I want this?
-                    'Down0': OGConvLayer(
+                    "Down0": OGConvLayer(
                         in_c=self.channels[0],
                         out_c=self.channels[1],
                         type=type,
@@ -108,7 +108,7 @@ def UNetFactory(ConvLayer):
             for i, (in_c, out_c, depth_down) in enumerate(
                 zip(self.channels[1:], self.channels[2:], self.depth_downsample)
             ):
-                self.layers[f'Down{i+1}'] = DownLayer(
+                self.layers[f"Down{i + 1}"] = DownLayer(
                     in_c, out_c, type, depth_down, residual=residual, cat_emb_dim=cat_emb_dim
                 )
 
@@ -129,7 +129,7 @@ def UNetFactory(ConvLayer):
             in_c: int,
             concat_c: int,
             out_c: int,
-            type: str = '2D',
+            type: str = "2D",
             depth_upsample: bool = True,
             interpolate: bool = True,
             dropout: bool = True,
@@ -142,7 +142,7 @@ def UNetFactory(ConvLayer):
                 convTransParam = self.convTransParam(type, depth_upsample)
             self.dropout = nn.Dropout(p=0.25) if dropout else nn.Identity()
             if interpolate:
-                self.upsample = partial(F.interpolate, scale_factor=2, mode='nearest')
+                self.upsample = partial(F.interpolate, scale_factor=2, mode="nearest")
                 self.conv_layer = ConvLayer(in_c + concat_c, out_c, type, residual=residual, cat_emb_dim=cat_emb_dim)
             else:
                 self.upsample = self.ConvTranspose(in_c, out_c, **convTransParam)
@@ -161,7 +161,7 @@ def UNetFactory(ConvLayer):
             self,
             channels: Iterable[int],
             enc_channels: Iterable[int],
-            type: str = '2D',
+            type: str = "2D",
             depth_upsample: Optional[Iterable[int]] = None,
             interpolate=False,
             dropout: bool = True,
@@ -169,14 +169,14 @@ def UNetFactory(ConvLayer):
             cat_emb_dim: Optional[int] = None,
         ) -> None:
             super().__init__(type)
-            assert (
-                channels[0] == enc_channels[-1]
-            ), 'Decoder has to start with the same number of channels as encoder ends'
+            assert channels[0] == enc_channels[-1], (
+                "Decoder has to start with the same number of channels as encoder ends"
+            )
             self.channels = channels
             # self.enc_channels = enc_channels[-2:0:-1]  # Reverse and exclude the first entry and last
             self.enc_channels = enc_channels[-2::-1]  # Reverse and exclude the last entry
             self.depth_upsample = (
-                depth_upsample[::-1] if (type == '3D' and depth_upsample is not None) else [True] * (len(channels) - 1)
+                depth_upsample[::-1] if (type == "3D" and depth_upsample is not None) else [True] * (len(channels) - 1)
             )
 
             self.layers = nn.ModuleDict({})
@@ -184,7 +184,7 @@ def UNetFactory(ConvLayer):
                 zip(self.channels, self.enc_channels, self.channels[1:], self.depth_upsample)
             ):
                 if i < len(self.channels) - 2:
-                    self.layers[f'Up{i}'] = UpLayer(
+                    self.layers[f"Up{i}"] = UpLayer(
                         in_c=in_c,
                         concat_c=enc_c,
                         out_c=out_c,
@@ -196,7 +196,7 @@ def UNetFactory(ConvLayer):
                         cat_emb_dim=cat_emb_dim,
                     )
                 else:
-                    self.layers[f'Up{i}'] = UpLayer(
+                    self.layers[f"Up{i}"] = UpLayer(
                         in_c=in_c,
                         concat_c=enc_c,
                         out_c=out_c,
@@ -204,7 +204,7 @@ def UNetFactory(ConvLayer):
                         depth_upsample=d_upsample,
                         interpolate=interpolate,
                         dropout=dropout,
-                        convTransParam={'kernel_size': (1, 2, 2), 'stride': (1, 2, 2)},
+                        convTransParam={"kernel_size": (1, 2, 2), "stride": (1, 2, 2)},
                         residual=residual,
                         cat_emb_dim=cat_emb_dim,
                     )
@@ -229,7 +229,7 @@ def UNetFactory(ConvLayer):
             self,
             encoder_channels: Iterable[int],
             decoder_channels: Iterable[int],
-            type: str = '3D',
+            type: str = "3D",
             depth_downsample: Optional[Iterable[int]] = None,
             interpolate: bool = False,
             dropout: bool = True,
@@ -282,14 +282,14 @@ def UNetFactory(ConvLayer):
             return torch.argmax(res, dim=1)
 
         def _check_args(self, encoder_channels, decoder_channels, type, depth_downsample):
-            assert len(encoder_channels) <= len(decoder_channels), 'Decoder needs to be longer than encoder'
-            assert (
-                decoder_channels[0] == encoder_channels[-1]
-            ), f'Decoder has to start with the same number of channels as encoder ends: {decoder_channels[0]} vs {encoder_channels[-1]}'
+            assert len(encoder_channels) <= len(decoder_channels), "Decoder needs to be longer than encoder"
+            assert decoder_channels[0] == encoder_channels[-1], (
+                f"Decoder has to start with the same number of channels as encoder ends: {decoder_channels[0]} vs {encoder_channels[-1]}"
+            )
 
-            assert type in ['2D', '3D'], 'Type has to be either 2D or 3D'
-            if type == '2D':
-                assert depth_downsample is None, 'If type is 2D, there is no depth downsampling possibility!'
+            assert type in ["2D", "3D"], "Type has to be either 2D or 3D"
+            if type == "2D":
+                assert depth_downsample is None, "If type is 2D, there is no depth downsampling possibility!"
             if depth_downsample is not None:
                 assert len(depth_downsample) == len(encoder_channels) - 2
 
@@ -301,7 +301,7 @@ class OGConvLayer(CustModule):
         self,
         in_c: int,
         out_c: int,
-        type: str = '2D',
+        type: str = "2D",
         first_kernel=3,
         first_stride=1,
         first_padding=1,
@@ -318,8 +318,8 @@ class OGConvLayer(CustModule):
         self.norm2 = self.BatchNorm(out_c, momentum=0.05)
         self.residual = residual
 
-        nn.init.kaiming_uniform_(self.conv1.weight, mode='fan_in', nonlinearity='relu')
-        nn.init.kaiming_uniform_(self.conv2.weight, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.conv1.weight, mode="fan_in", nonlinearity="relu")
+        nn.init.kaiming_uniform_(self.conv2.weight, mode="fan_in", nonlinearity="relu")
 
         # Category embedding
         self.mlp_cat = nn.Linear(cat_emb_dim, 2 * out_c) if cat_emb_dim is not None else None
@@ -333,7 +333,7 @@ class OGConvLayer(CustModule):
             # with profile(activities=[ProfilerActivity.CPU], record_shapes=True) as prof:
             #     with record_function("model_inference"):
             cat_embedding = self.mlp_cat(cat_embedding)
-            cat_embedding = rearrange(cat_embedding, 'b c -> b c 1 1 1')  # Just broadcast over all spatial dimensions
+            cat_embedding = rearrange(cat_embedding, "b c -> b c 1 1 1")  # Just broadcast over all spatial dimensions
             scale_shift = cat_embedding.chunk(2, dim=1)
         else:
             scale_shift = None
@@ -354,7 +354,7 @@ class OGConvLayer(CustModule):
 
 class ConvNeXtLayer(CustModule):
     def __init__(
-        self, in_c: int, out_c: int, type: str = '2D', first_kernel=3, first_stride=1, first_padding=1, residual=False
+        self, in_c: int, out_c: int, type: str = "2D", first_kernel=3, first_stride=1, first_padding=1, residual=False
     ):
         super().__init__(type)
         self.conv1 = self.Conv(in_c, in_c, kernel_size=7, stride=1, padding=3, groups=in_c)
@@ -364,8 +364,8 @@ class ConvNeXtLayer(CustModule):
         self.conv3 = self.Conv(4 * in_c, out_c, kernel_size=1, stride=1, padding=0)
         self.convres = self.Conv(in_c, out_c, kernel_size=1, stride=1, padding=0)
 
-        nn.init.kaiming_uniform_(self.conv1.weight, mode='fan_in', nonlinearity='relu')
-        nn.init.kaiming_uniform_(self.conv2.weight, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.conv1.weight, mode="fan_in", nonlinearity="relu")
+        nn.init.kaiming_uniform_(self.conv2.weight, mode="fan_in", nonlinearity="relu")
 
     def forward(self, x):
         residual = x
@@ -400,7 +400,7 @@ class GNConvLayer(OGConvLayer):
         self,
         in_c: int,
         out_c: int,
-        type: str = '2D',
+        type: str = "2D",
         first_kernel=3,
         first_stride=1,
         first_padding=1,
@@ -415,8 +415,8 @@ class GNConvLayer(OGConvLayer):
         self.norm2 = nn.GroupNorm(num_groups=8, num_channels=out_c)
         self.residual = residual
 
-        nn.init.kaiming_uniform_(self.conv1.weight, mode='fan_in', nonlinearity='relu')
-        nn.init.kaiming_uniform_(self.conv2.weight, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.conv1.weight, mode="fan_in", nonlinearity="relu")
+        nn.init.kaiming_uniform_(self.conv2.weight, mode="fan_in", nonlinearity="relu")
 
         # Category embedding
         self.mlp_cat = nn.Sequential(nn.Linear(cat_emb_dim, 2 * out_c)) if cat_emb_dim is not None else None
@@ -430,12 +430,12 @@ UNet = UNetFactory(OGConvLayer)
 UNeXt = UNetFactory(ConvNeXtLayer)
 UNetGN = UNetFactory(GNConvLayer)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     input_channels = 1
     net = UNet(
         encoder_channels=[input_channels, 64, 128, 256, 512],
         decoder_channels=[512, 256, 128, 64, 32, 1],
-        type='3D',
+        type="3D",
         cat_emb_dim=32,
     ).cuda()
 
@@ -444,4 +444,4 @@ if __name__ == '__main__':
 
     emb = torch.randn(4, 32).cuda()
     pred = net(x, emb)
-    print('Finished')
+    print("Finished")

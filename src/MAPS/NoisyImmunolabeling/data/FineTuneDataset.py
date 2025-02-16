@@ -11,43 +11,28 @@ from dataclasses import dataclass
 from einops import rearrange
 from torch.utils.data import DataLoader, Dataset
 
-
-@dataclass
-class Sample:
-    file: str
-    path_nhs: str
-    path_pred: str
+from MAPS.NoisyImmunolabeling.data import Sample
 
 
 class FineTuneDataset(Dataset):
     def __init__(
         self,
         file_list: List[Sample],
-        #  targets_path_list: Optional[List[str]] = None,
         training_size: Tuple[int] = (32, 256, 256),
         data_stride: Tuple[int] = (16, 128, 128),
-        mode: str = 'train',
+        mode: str = "train",
         extract_channel: Optional[int] = None,
-        path_preds='',
+        path_preds="",
     ):
-        coords = [f.file[f.file.find('_nhs') :] for f in file_list]
-        coords = [c[5:-4].split('_') for c in coords]
+        coords = [f.file[f.file.find("_nhs") :] for f in file_list]
+        coords = [c[5:-4].split("_") for c in coords]
         self.coords = [tuple(map(int, c)) for c in coords]
-        # self.imgs_path_list = [os.path.join(f.path_nhs, f.file[: f.file.find('_nhs')]) + '.tif' for f in file_list]
         self.imgs_path_list = [os.path.join(f.path_nhs, f.get_nhs_name()) for f in file_list]
-        # for i in range(len(self.imgs_path_list)):
-        #     if 'WT1' in self.imgs_path_list[i]:
-        #         if not '_D6_' in self.imgs_path_list[i]:
-        #             self.imgs_path_list[i] = self.imgs_path_list[i].replace('April', 'May')
-        #     elif 'WT2' in self.imgs_path_list[i]:
-        #         self.imgs_path_list[i] = self.imgs_path_list[i].replace('April', 'August')
-        #     elif 'WT3' in self.imgs_path_list[i]:
-        #         self.imgs_path_list[i] = self.imgs_path_list[i].replace('April', 'August')
-        self.targets_path_list = [os.path.join(f.path_pred, f.file.replace('nhs', 'pred_mod')) for f in file_list]
+        self.targets_path_list = [os.path.join(f.path_pred, f.file.replace("nhs", "pred_mod")) for f in file_list]
         self.training_size = training_size
         self.data_stride = data_stride
         self.mode = mode
-        assert self.mode in ['train', 'val', 'test'], f'Unvalid mode parameter: {mode}'
+        assert self.mode in ["train", "val", "test"], f"Unvalid mode parameter: {mode}"
 
         self.img_list = []
         self.target_list = []
@@ -56,16 +41,12 @@ class FineTuneDataset(Dataset):
         self.nhs_quantiles = [None] * len(file_list)
         self.nhs_mins = [None] * len(file_list)
 
-        print(f'{time.strftime("%H:%M:%S")} Reading in NHS')
-        # with Pool(8) as p:
-        #     unique_nhs_images = list(set(self.imgs_path_list))
-        #     nhs_images = p.map(skimage.io.imread, unique_nhs_images)
-        #     nhs_images = {k: v for k, v in zip(unique_nhs_images, nhs_images)}
+        print(f"{time.strftime('%H:%M:%S')} Reading in NHS")
 
         for file_id in range(0, len(self.imgs_path_list)):
             # Read files
             imgs_path = self.imgs_path_list[file_id]
-            print(f'{time.strftime("%H:%M:%S")} Processing: {imgs_path}')
+            print(f"{time.strftime('%H:%M:%S')} Processing: {imgs_path}")
             target_path = self.targets_path_list[file_id]
             cur_image = skimage.io.imread(imgs_path)
             # cur_image = nhs_images[imgs_path].copy()
@@ -78,7 +59,7 @@ class FineTuneDataset(Dataset):
 
             # Load the target if its present (won't be if we use the BasicDataset for inference)
             self.target_set = skimage.io.imread(target_path).astype(
-                'uint8'
+                "uint8"
             )  # /255 # Empty masks get loaded as uint16 for some reason
 
             # Preprocess the data and normalise the data -> 0-1
@@ -86,7 +67,7 @@ class FineTuneDataset(Dataset):
             # Otherwise, if no threshold config file is given which specifies a specific max value,
             # we compute the 99% quantile and set this to 1
             # Specifically for the 2nd batch we need to give hand-picked thresholds as the data looks very different
-            if self.mode == 'train':
+            if self.mode == "train":
                 self.upper_quantiles = [0.985, 0.9875, 0.99, 0.9925, 0.995, 0.9975, 0.999]
                 self.lower_quantiles = [0.0001, 0.001, 0.0025, 0.005, 0.006, 0.0075]
                 all_quantiles = np.quantile(cur_image, q=self.lower_quantiles + self.upper_quantiles)
@@ -127,7 +108,7 @@ class FineTuneDataset(Dataset):
             z_range[0] : z_range[1], x_range[0] : x_range[1], y_range[0] : y_range[1]
         ].clone()
 
-        if self.mode == 'train':
+        if self.mode == "train":
             # Flipping - data augmentation
             flip_data = np.random.rand(3) > 0.5
             for dim in range(3):
@@ -147,14 +128,14 @@ class FineTuneDataset(Dataset):
         img = FineTuneDataset.rearrange_shape(img)
         target = FineTuneDataset.rearrange_shape_target(target)
 
-        return {'image': img, 'target': target}
+        return {"image": img, "target": target}
 
     @staticmethod
     def rearrange_shape(img_trans):
         if len(img_trans.shape) == 3:
             img_trans = img_trans[..., None]
         # HWC to CHW
-        img_trans = rearrange(img_trans, 'Z X Y C-> C Z X Y')
+        img_trans = rearrange(img_trans, "Z X Y C-> C Z X Y")
 
         return img_trans
 
@@ -169,7 +150,7 @@ class FineTuneDataset(Dataset):
             target = target[..., None]
 
         # HWC to CHW
-        target = rearrange(target, 'Z X Y C-> C Z X Y')
+        target = rearrange(target, "Z X Y C-> C Z X Y")
         return target
 
 
@@ -182,7 +163,7 @@ class FineTuneCellData(pl.LightningDataModule):
         training_size: Tuple[int] = (32, 256, 256),
         data_stride: Tuple[int] = (16, 128, 128),
         extract_channel: Optional[int] = 1,
-        path_preds: str = '',
+        path_preds: str = "",
     ):
         super().__init__()
         self.train_files = train_files
@@ -196,7 +177,7 @@ class FineTuneCellData(pl.LightningDataModule):
             self.train_files,
             training_size=self.training_size,
             data_stride=self.data_stride,
-            mode='train',
+            mode="train",
             extract_channel=self.extract_channel,
             path_preds=path_preds,
         )
@@ -205,7 +186,7 @@ class FineTuneCellData(pl.LightningDataModule):
                 self.test_files,
                 training_size=self.training_size,
                 data_stride=self.data_stride,
-                mode='test',
+                mode="test",
                 extract_channel=self.extract_channel,
                 path_preds=path_preds,
             )

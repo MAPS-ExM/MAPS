@@ -1,19 +1,17 @@
-"""
-Run with subJob --env 'light2' --gpu_type 'a100-pcie-80gb' Predict_refined_model.py
-"""
-
 import os
+import json
 import time
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import tifffile
 import torch
-from InitalAdoptDataset import InitAdoptDataset, KidneyPredictDataset
-from models.FineTuneModel import Model
 from torch import nn
 from tqdm import tqdm
+
+from MAPS.NoisyImmunolabeling.data import KidneyPredictDataset
+from MAPS.NoisyImmunolabeling.models import FineTuneModel as Model
 
 
 def add_mirrored_slices(img: torch.Tensor, n_slices: int) -> torch.Tensor:
@@ -101,7 +99,7 @@ def predict_stack(
         # breakpoint()
         stride = np.array(stride)
         img_window = np.array(img_window)
-        final_prediction = np.zeros(img.shape, dtype='uint8')
+        final_prediction = np.zeros(img.shape, dtype="uint8")
         img_shape = np.array(img.squeeze().shape)
 
         for z in tqdm(range(0, img_shape[-3] - stride[0] + stride[0], stride[0]), disable=silent):
@@ -129,7 +127,7 @@ def predict_stack(
 
                     # Insert the current batch in the final prediction
                     final_prediction[start[0] : end[0], start[1] : end[1], start[2] : end[2]] = (
-                        pred_batch.cpu().numpy().astype('uint8')
+                        pred_batch.cpu().numpy().astype("uint8")
                     )
 
     return final_prediction
@@ -188,7 +186,7 @@ class FakeModel:
     """
 
     def predict(self, x):
-        return torch.ones(x.shape).cpu().numpy().astype('uint8') * 255
+        return torch.ones(x.shape).cpu().numpy().astype("uint8") * 255
 
 
 def mk_dir(path):
@@ -198,9 +196,9 @@ def mk_dir(path):
 
 def shorten_filename(filename: str) -> str:
     return (
-        filename.replace('_TOM20647_Mitotracker_NHSester488', '')
-        .replace('.ims Resolution Level 1', '')
-        .replace('.ims_Resolution_Level_1', '')
+        filename.replace("_TOM20647_Mitotracker_NHSester488", "")
+        .replace(".ims Resolution Level 1", "")
+        .replace(".ims_Resolution_Level_1", "")
     )
 
 
@@ -211,7 +209,7 @@ def load_model(model_path: str, device: int) -> torch.nn.Module:
 
     # Build and load best model
     model = Model.load_from_checkpoint(model_path)
-    model = model.to(torch.device(f'cuda:{device}'))
+    model = model.to(torch.device(f"cuda:{device}"))
     model.eval()
 
     return model
@@ -233,13 +231,13 @@ def make_prediction(
 
     prediction_window_size = patch_size
     prediction_stride = stride
-    print(f'Using patch size: {prediction_window_size} with stride {prediction_stride}', flush=True)
+    print(f"Using patch size: {prediction_window_size} with stride {prediction_stride}", flush=True)
 
     # Make prediction
     dataset = KidneyPredictDataset(
         imgs_path_list=[img_path],
         extract_channel=extract_channel,
-        mode='test',
+        mode="test",
     )
     data = dataset.img_list[0]
     data = add_mirrored_slices(data, prediction_window_size[0] // 2)
@@ -249,54 +247,49 @@ def make_prediction(
     return prediction
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import argparse
 
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--input_file_path', type=str)
-    argparser.add_argument('--output_path', type=str)
-    argparser.add_argument('--model_path', type=str)
-    argparser.add_argument('--cube_width', type=int, default=512)
-    argparser.add_argument('--cube_depth', type=int, default=32)
-    argparser.add_argument('--stride_width', type=int, default=256)
-    argparser.add_argument('--stride_depth', type=int, default=16)
-    argparser.add_argument('--stride_depth', type=int, default=16)
-    argparser.add_argument('--nhs_channel', type=int, default=1)
-    argparser.add_argument('--device', type=int, default=0)
+    argparser.add_argument("--output_path", type=str)
+    argparser.add_argument("--model_path", type=str)
+    argparser.add_argument("--input_file_path", type=str, default="")
+    argparser.add_argument("--input_files_json", type=str, default="")
+    argparser.add_argument("--cube_width", type=int, default=512)
+    argparser.add_argument("--cube_depth", type=int, default=32)
+    argparser.add_argument("--stride_width", type=int, default=256)
+    argparser.add_argument("--stride_depth", type=int, default=16)
+    argparser.add_argument("--nhs_channel", type=int, default=1)
+    argparser.add_argument("--device", type=int, default=0)
     args = argparser.parse_args()
 
-    # input_file_path = '/well/rittscher/projects/PanVision/data/FullStacks/Originals/MouseKidney'
-    filenames = [f for f in os.listdir(args.input_file_path) if f.endswith('.tif') and not f.startswith('.')]
-    threshold_file = None
-
-    # New Data model
-    # path_model_base = (
-    #     '/well/rittscher/users/jyo949/AntiBodySegKidney/MitoClustering/FineTuned_modelStrip/SeventhIteration/version_0'
-    # )
-
-    # model_path = f'{path_model_base}/checkpoints/epoch=19-step=1400.ckpt'  # For AllFile
-    # output_path = f'{path_model_base}/pred/'
+    if os.path.isfile(args.input_file_path):
+        filenames = [(os.path.basename(args.input_file_path), os.path.dirname(args.input_file_path))]
+    if args.input_files_json:
+        with open(args.input_files_json, "r") as f:
+            input_files = json.load(f)
+            filenames = [(e["file_name"], e["path_base"]) for e in input_files]
 
     mk_dir(args.output_path)
     cur_model = load_model(args.model_path, args.device)
-    print(f'Loaded model from {args.model_path}', flush=True)
+    print(f"Loaded model from {args.model_path}", flush=True)
     for file_name, input_file_path in filenames:
         output_file = os.path.join(args.output_path, shorten_filename(file_name))
 
         if os.path.exists(output_file):
-            print(f'File {output_file} already exists, skipping')
+            print(f"File {output_file} already exists, skipping")
             continue
         else:
             Path(output_file).touch()
-            print(f'{"-"*25}\n{time.strftime("%Y:%m:%d %H:%M:%S")}', shorten_filename(file_name), flush=True)
+            print(f"{'-' * 25}\n{time.strftime('%Y:%m:%d %H:%M:%S')}", shorten_filename(file_name), flush=True)
         pred = make_prediction(
             img_path=os.path.join(input_file_path, file_name),
             model=cur_model,
             patch_size=[args.cube_depth, args.cube_width, args.cube_width],  # Check with your memory
             stride=[args.stride_depth, args.stride_width, args.stride_width],
             extract_channel=args.nhs_channel,
-            threshold_file=threshold_file,
+            threshold_file=None,
         )
-        tifffile.imwrite(output_file, pred.astype('uint8'), imagej=True, metadata={'axes': 'ZYX'}, compression='zlib')
+        tifffile.imwrite(output_file, pred.astype("uint8"), imagej=True, metadata={"axes": "ZYX"}, compression="zlib")
 
-        print(f'{time.strftime("%Y:%m:%d %H:%M:%S")} Saved image {output_file}!', flush=True)
+        print(f"{time.strftime('%Y:%m:%d %H:%M:%S')} Saved image {output_file}!", flush=True)
