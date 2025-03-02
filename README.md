@@ -1,4 +1,7 @@
 # Mitochondrial Automated Pan-ExM Segmentation
+Expansion microscopy offers the exciting opportunity to combine a panstaining like NHS with target-specific dyes or antibodies. In the context of machine learning, this combination allow to reduce the requirement for large amounts of human annotations as a DL segmentation model can extract information directly from target specific staining to allow producing segmentation masks purely from the pan-staining which only need some fine-tuning with a limited amount of annotations.
+
+In the following, we describe two approaches depending on the amount of noice contained in the target-specific staining.
 
 # Noisy Antibodies 
 ![KidneyWorkflow](./docs/KidneyWorkflow.png)
@@ -7,7 +10,7 @@ If your data does not allow to derive prediction targets masks in a simple way (
 
 ### 1. Mitochondria outline
 What to do when new data arrives:
-1. Test if the data is similar enough so that the old model just works:
+1. Test if the data is similar enough so that the old model just works. Pre-trained models are available [here](https://drive.google.com/drive/folders/1rOUEcnpw_hRCQrZbTtBN4cFgpCq5eGPT?usp=sharing).
     1. Run `NoisyImmunolabelin/Predict_refined_model.py`
     - If yes, perfect, nothing to be done.
     - If no, we have to retrain following the next steps
@@ -33,9 +36,13 @@ This case corresponds to the scenario in which an additional dye like MitoTracke
 If the prediction target can be outlined well enough by the additional dye, any segmentation framework could be used in general like the excellent [nnUNet](https://github.com/MIC-DKFZ/nnUNet). 
 The work presented in our paper however only uses the MitoTracker for the general outline of the structure and then fine-tunes an additional encoder to segment the inner structure.
 The code for this workflow is found in the `MitoTracker` directory.
+Pretrained models can be found [here](https://drive.google.com/drive/folders/1hziGW7KhJJamqSZKYRiE0BTvMJCi43xn?usp=share_link).
 
-
+--
+## Nucleus
+Some workflows might require the additional segmentation of the nucleus. Have a look at [this](https://github.com/AlexSauer/NucleusPanVision) repo for this.
 
 ## Errors:
-If you run the scripts like `train_outline.py` from within their directories, update the `PYTHONPATH` variable like
+- If you run the scripts like `train_outline.py` from within their directories, update the `PYTHONPATH` variable like
 `export PYTHONPATH='YOURPATH/src/MAPS/':$PYTHONPATH` to make sure all imports work.
+- The predictions looks like noise: Make sure to have set the paths correctly when loading the model
