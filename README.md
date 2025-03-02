@@ -6,7 +6,7 @@ In the following, we describe two approaches depending on the amount of noice co
 # Noisy Antibodies 
 ![KidneyWorkflow](./docs/KidneyWorkflow.png)
 
-If your data does not allow to derive prediction targets masks in a simple way (like morphological oprations), then this is the case to consider. This corresponds to the analysis of the kidney tissue in the paper and the workflow is illustrated in the figure above. We first train a model to predict the mitochondria outline from the antibodies before fine-tuning the model to the inner structure. The code for this workflow is contained in `NoisyImmunolabeling`
+If your data does not allow to derive prediction targets masks in a simple way (like via morphological operations), then this is the case to consider. This corresponds to the analysis of the kidney tissue in the paper and the workflow is illustrated in the figure above. We first train a model to predict the mitochondria outline from the antibodies before fine-tuning the model to the inner structure. The code for this workflow is contained in `NoisyImmunolabeling`
 
 ### 1. Mitochondria outline
 What to do when new data arrives:
@@ -17,17 +17,19 @@ What to do when new data arrives:
 2. Run some experiments with `NoisyImmunolabeling/train_outline.py` with a small (~3) number of files to find the appropriate lower threshold for the immunolabelling/ antibody (AB) value. Visual inspection gives a first clue and finding the proper value can normally be achieved with less than 5 attempts. The methodolgy is described in the paper.
 3. Use this model to get the mitochondria outline for the new batch (automatically created with `train_outline.py`) or for other data with `prediction_outline.py`.
 
-If everything works out fine, you should be able to predict the outline of the target organellese (mitochondria in this example) fairly accurately:
+If everything works out fine, you should be able to predict the outline of the target organelles (mitochondria in this example) fairly accurately:
 ![OutlineExample](./docs/OutlineExample.png)
 Depending on the localisation and accuracy of your immunolabelling you might have to experiment with the AB-threshold value or the $\tau$ parameter which specifies the radius of the neighbourhood size [shown as 'Antibody Mask' in the first figure, see the paper for details].
 
 
 
 ### 2. Inner Structure
-1. Run the HeLa cell model or any other available on the kidney data but only output matrix vs cristae dicision and apply Majority Vote if an Ensemble was used. Use these predictions only for the outline predicted by the model from step 1.
+1. Run the HeLa cell model (see link for pre-trained models below) or any other available models on the kidney data but only output the matrix vs cristae decision and apply Majority Vote if an Ensemble was used. Use these predictions only for the outline predicted by the model from step 1.
 2. Use `train_initial_inner.py` to train an initial model that can replicate the combination of HeLa cell prediction and the mitochondria outline. The advantage of this step is that we can basically use all available data for this step.
-3. If we want the overall cristae segmentation: `GenerateSegData.ipynb` was used to combine the outline of the parent directory model with the HeLa cell model. This data was then manueally refined and is saved in `/data`.
-4. If we want to differentiate between stripped and non stripped:
+3. Annotate additional data
+- a: If we want the overall cristae segmentation: `GenerateSegData.ipynb` was used to combine the outline of the parent directory model with the HeLa cell model. The notebook is based on `napari` and allows for fairly efficient annotation of new samples. It is especially worth annotating the data sparsely (only every ~8th slice) and ignore the other slices in the loss function. This manuelly refined is saved in `/data` and then used for the fine-tuning.
+ - b: If we want to differentiate between stripped and non stripped: Use the same notebook but annotate only the difference between lamellar and non-lamellar structures.
+4. Use the annotated data to fine-tune theodel with `train_fine_tune_inner.py`.
 
 # Precise Additional Dye - MitoTracker
 This case corresponds to the scenario in which an additional dye like MitoTracker allows to automatically derive segmentation masks that work as the prediction targets. 
@@ -38,7 +40,8 @@ The work presented in our paper however only uses the MitoTracker for the genera
 The code for this workflow is found in the `MitoTracker` directory.
 Pretrained models can be found [here](https://drive.google.com/drive/folders/1hziGW7KhJJamqSZKYRiE0BTvMJCi43xn?usp=share_link).
 
---
+
+
 ## Nucleus
 Some workflows might require the additional segmentation of the nucleus. Have a look at [this](https://github.com/AlexSauer/NucleusPanVision) repo for this.
 
