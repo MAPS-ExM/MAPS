@@ -11,7 +11,7 @@ If your data does not allow to derive prediction targets masks in a simple way (
 ### 1. Mitochondria outline
 What to do when new data arrives:
 1. Test if the data is similar enough so that the old model just works. Pre-trained models are available [here](https://drive.google.com/drive/folders/1rOUEcnpw_hRCQrZbTtBN4cFgpCq5eGPT?usp=sharing).
-    1. Run `NoisyImmunolabelin/Predict_refined_model.py`
+    1. Run `NoisyImmunolabeling/prediction_finetuned.py`
     - If yes, perfect, nothing to be done.
     - If no, we have to retrain following the next steps
 2. Run some experiments with `NoisyImmunolabeling/train_outline.py` with a small (~3) number of files to find the appropriate lower threshold for the immunolabelling/ antibody (AB) value. Visual inspection gives a first clue and finding the proper value can normally be achieved with less than 5 attempts. The methodolgy is described in the paper.

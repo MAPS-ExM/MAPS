@@ -253,8 +253,26 @@ if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument("--output_path", type=str)
     argparser.add_argument("--model_path", type=str)
-    argparser.add_argument("--input_file_path", type=str, default="")
-    argparser.add_argument("--input_files_json", type=str, default="")
+    argparser.add_argument(
+        "--input_file_path",
+        type=str,
+        default="",
+        help="Provide file path directly. Either use this option or --input_files_json to predict several paths at once.",
+    )
+    argparser.add_argument(
+        "--input_files_json",
+        type=str,
+        default="",
+        help="""Provide path to a json file with the input files looking like                       
+    [
+        {
+            "file_name": "WT1_05.tif",
+            "path_base": "/<ourPATH>/MouseKidney"
+        }
+    ] 
+    Each entry specifies the filename and the directory in which that file lives.
+    """,
+    )
     argparser.add_argument("--cube_width", type=int, default=512)
     argparser.add_argument("--cube_depth", type=int, default=32)
     argparser.add_argument("--stride_width", type=int, default=256)

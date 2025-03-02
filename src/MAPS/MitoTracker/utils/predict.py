@@ -4,7 +4,6 @@ import numpy as np
 import argparse
 from data.BasicDataset import BasicDataset
 
-# from utils.Args import Args
 from MAPS.MitoTracker.utils import Args
 
 import tifffile

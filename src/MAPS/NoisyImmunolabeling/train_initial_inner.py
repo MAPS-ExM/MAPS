@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 import pytorch_lightning as pl
 from data.InitalAdoptDataset import CellData
-from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint, StochasticWeightAveraging
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 
 from MAPS.NoisyImmunolabeling.models import FineTuneModel as Model
 
