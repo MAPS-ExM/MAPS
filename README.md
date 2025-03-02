@@ -39,7 +39,7 @@ If the prediction target can be outlined well enough by the additional dye, any 
 The work presented in our paper however only uses the MitoTracker for the general outline of the structure and then fine-tunes an additional encoder to segment the inner structure.
 The code for this workflow is found in the `MitoTracker` directory.
 Pretrained models can be found [here](https://drive.google.com/drive/folders/1hziGW7KhJJamqSZKYRiE0BTvMJCi43xn?usp=share_link).
-
+These pre-trained models can be run with `/predict/make_predictions.py` and should be followed by `majorityVote.py` and `postprocess.py` to combine the ensemble predictions and apply basic post-processing.
 
 
 ## Nucleus
