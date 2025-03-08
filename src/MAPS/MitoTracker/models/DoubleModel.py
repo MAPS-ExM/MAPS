@@ -1,11 +1,12 @@
 """3D Unet"""
 
 import sys
+import os
 
-sys.path.insert(0, "../..")
 
 import random
 from typing import Dict, Optional, Union
+
 
 import numpy as np
 import torch
@@ -13,10 +14,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 from torch.nn.modules.loss import _Loss
-from utils.common_utils import GPU_Dilator
-from utils.Losses import DiceLoss
 
+from MAPS.MitoTracker.utils.common_utils import GPU_Dilator
 from MAPS.utils import SegmentatorNetwork, UNet, UNetGN
+from MAPS.MitoTracker.utils import Args, DiceLoss
+from MAPS.MitoTracker.models import build_model
 
 
 def _disable_require_grad(model):
@@ -46,11 +48,6 @@ class DoubleModel(nn.Module):
         self.return_stage1_pred = False
 
         if pretrain:
-            import os
-
-            from utils.Args import Args
-
-            from .build_model import build_model
 
             pre_trained_args = Args(os.path.join(pretrain, "args.yaml"))
             pre_trained_args.device = device

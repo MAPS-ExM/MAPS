@@ -1,20 +1,14 @@
-import torch
 from torch import nn
-import numpy as np
-import argparse
-from data.BasicDataset import BasicDataset
-
-from MAPS.MitoTracker.utils import Args
-
-import tifffile
 from tqdm import tqdm
 from typing import Optional
+import argparse
+import numpy as np
+import tifffile
+import torch
 
-try:
-    # from models.build_model import build_model
-    from MAPS.MitoTracker.models import build_model
-except ModuleNotFoundError:
-    pass
+from MAPS.MitoTracker.data.BasicDataset import BasicDataset
+from MAPS.MitoTracker.utils import Args
+from MAPS.MitoTracker.models import build_model
 
 
 def add_mirrored_slices(img: torch.Tensor, n_slices: int) -> torch.Tensor:
@@ -183,107 +177,3 @@ def raw_predict_stack(
                     )
 
     return final_prediction
-
-
-class FakeModel:
-    def predict(self, x):
-        return torch.ones(x.shape).cpu().numpy().astype("uint8") * 255
-
-
-if __name__ == "__main__":
-
-    def get_args():
-        parser = argparse.ArgumentParser(
-            description="Predict masks from input images", formatter_class=argparse.ArgumentDefaultsHelpFormatter
-        )
-        parser.add_argument("--model_path", "-m", metavar="FILE", help="Specify the file in which the model is stored")
-        # parser.add_argument('--model_name', '-mn', metavar='INPUT', nargs='+',
-        #                     help='Model type used', required=True)   # Unnecessary as it is in args
-        parser.add_argument(
-            "--model_spec",
-            "-ms",
-            metavar="INPUT",
-            nargs="+",
-            help="Path to Model specifications yaml file",
-            required=True,
-        )
-        parser.add_argument(
-            "--input_path", "-i", metavar="INPUT", nargs="+", help="filenames of input images", required=True
-        )
-        parser.add_argument("--output_path", "-o", metavar="INPUT", nargs="+", help="Filenames of ouput images")
-        parser.add_argument(
-            "--mask_threshold",
-            "-t",
-            type=float,
-            help="Minimum probability value to consider a mask pixel white",
-            default=0.5,
-        )
-        parser.add_argument("--scale", "-s", type=float, help="Scale factor for the input images", default=1)
-        parser.add_argument(
-            "-pn", "--pix_num", dest="pix_num", type=int, default=1000, help="Minimum number of voxels in an instance"
-        )
-        parser.add_argument(
-            "--batch_size", type=int, default=[32, 128, 128], nargs="+", help="size of the sliding window"
-        )
-        parser.add_argument(
-            "stride", type=int, default=[16, 64, 64], nargs="+", help="stride by which we move the sliding window"
-        )
-        parser.add_argument(
-            "-sp",
-            "--start_point",
-            dest="start_point",
-            type=int,
-            default=(0, 0, 0),
-            nargs="+",
-            help="start coordinates for sliding window",
-        )
-        parser.add_argument(
-            "-ep",
-            "--end_point",
-            dest="end_point",
-            type=int,
-            default=(200, 2048, 2048),
-            nargs="+",
-            help="end coordinates for sliding window ",
-        )
-        parser.add_argument("--device", default="cpu")
-        return parser.parse_args()
-
-    class DebugArgs:
-        def __init__(self):
-            self.model_path = "/well/rittscher/users/jyo949/PanVisionSeg/output/DebugOneBatch/BestModel.pt"
-            self.model_name = "BasicUNet3D"
-            self.model_spec = "/well/rittscher/users/jyo949/PanVisionSeg/output/DebugOneBatch/args.yaml"
-            self.input_path = "/well/rittscher/projects/PanVision/data/training_data_Sept2022/dragonfly/Hela_Tom20_MitoOrange_2022-07-02_2.ims_Resolution_Level_1_nhs_norm.tif"
-            self.output_path = "pred_test.tif"
-            self.batch_size = [8, 64, 64]
-            self.stride = [4, 32, 32]
-            self.mask_threshold = 0.5
-            self.device = "cuda:0"
-
-    # Load arguments
-    script_args = get_args()  # DebugArgs()
-    args = Args(script_args.model_spec)
-    args.__dict__.update(script_args.__dict__)  # Add and overwrite args with the script_args
-
-    # Load data
-    data = BasicDataset(imgs_dir=[args.input_path], scale=args.scale)
-    data = data.img_list[0].to(args.device)
-    print("Data shape: {data.shape}")
-
-    # Load model
-    model = build_model(args)
-    model.load_state_dict(torch.load(args.model_path, map_location=args.device)["model_state_dict"])
-    model.to(args.device)
-
-    # For Debugging
-    # data = torch.zeros(32, 256, 256)
-    # model = FakeModel()
-
-    # Make prediction
-    print("Make predicion")
-    pred = predict_stack(data, model, args.batch_size, args.stride)
-
-    # Save prediction
-    tifffile.imwrite(args.output_path, pred)
-    print("Image saved")

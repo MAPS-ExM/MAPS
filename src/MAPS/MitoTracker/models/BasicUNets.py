@@ -7,7 +7,7 @@ import torch.nn as nn
 from torch.nn.modules.loss import _Loss
 from MAPS.utils import SegmentatorNetwork, UNet, UNetGN, UNeXt
 
-from utils.Losses import DiceLoss, GeneralisedCE
+from MAPS.MitoTracker.utils.Losses import DiceLoss, GeneralisedCE
 from typing import Dict
 
 

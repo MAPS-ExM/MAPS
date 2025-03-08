@@ -1,4 +1,3 @@
-from .build_model import build_model
 from .BasicUNets import (
     BasicUNet3D,
     BasicSmallUNet,
@@ -7,6 +6,7 @@ from .BasicUNets import (
     BasicSmallRegressionUNet,
     ConditionalGNUNet,
 )
+from .build_model import build_model
 
 __all__ = [
     "build_model",

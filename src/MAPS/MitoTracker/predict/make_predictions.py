@@ -2,9 +2,11 @@
 Run with subJob full_prediction.py  --memory 120 --env lightning --gpu_type 'a100-pcie-80gb'
 """
 
+import json
 import os
 import re
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -432,39 +434,28 @@ def mk_dir(path):
         os.makedirs(path, exist_ok=True)
 
 
-if __name__ == "__main__":
+def make_ensemble_predictions(files, 
+                     nhs_channel, 
+                     output_path, 
+                     model_path, 
+                     model_prefix, 
+                     model_suffix,
+                     patch_depth = 32, patch_width = 1024,
+                     stride_depth = 16, stride_width = 512):
+
     success, failed = [], []
-    extract_channel = 2  # 2 for normal files, 0 only works for the the kidney data!!!
-
-    filenames, input_file_path, threshold_file = get_paths(batch=1, group=2)  # Never use group 1!
-    filenames = filter_filenames(
-        filenames,
-        #  drugs = ['DMSO', 'Oligomycin', 'Antimycin', 'HBSS'],
-        drugs=["Oligomycin"],
-        #  drugs = ['DMSO'],
-        #  drugs = ['Antimycin'],
-        # drugs=["HBSS"],
-        #  cells = [0,1,2,3,4],
-        #  cells = [10, 11, 12, 13, 14],
-        #  cells = [0,1,2,3,4,5,6,7,8,9],
-        #  cells = [1, 4],
-    )[:1]
-
-    model_path = "/well/rittscher/users/jyo949/tmp/DrugEnsembel/AdditionalHBSSTraining/Results/"
-    output_path = "/well/rittscher/users/jyo949/tmp/outputTest"
-
-    runs = [1, 2]  # [0] means to ignore the run options
-
     mk_dir(output_path)
-    for run in runs:
-        mk_dir(os.path.join(output_path, f"Run{run}"))
-        current_model_path = os.path.join(model_path, f"Run_{run}", "args.yaml") if run != 0 else model_path
+    for run in model_suffix:
+        mk_dir(os.path.join(output_path, f"{model_prefix}_{run}"))
+        current_model_path = os.path.join(model_path, f"{model_prefix}_{run}", "args.yaml") if run != 0 else model_path
         cur_model = load_model_from_config(current_model_path)
         print(f"Loaded model from {current_model_path}", flush=True)
-        for file_name in filenames:
-            try:
+        for cur_file in files:
+            file_name = cur_file.file_name
+            # try:
+            if True:
                 output_file = (
-                    os.path.join(output_path, f"Run{run}", shorten_filename(file_name))
+                    os.path.join(output_path, f"{model_prefix}_{run}", shorten_filename(file_name))
                     if run != 0
                     else os.path.join(output_path, shorten_filename(file_name))
                 )
@@ -476,15 +467,13 @@ if __name__ == "__main__":
                     print(f"{'-' * 25}\n{time.strftime('%Y:%m:%d %H:%M:%S')}", shorten_filename(file_name), flush=True)
 
                 pred = make_prediction(
-                    img_path=os.path.join(input_file_path, file_name),
+                    img_path=os.path.join(cur_file.input_file_path, file_name),
                     model_yaml=current_model_path,
                     model=cur_model,
-                    # patch_size=[32, 1024, 1024],  # Adjust according to your GPU memory
-                    # stride=[16, 512, 512],
-                    patch_size=[32, 512, 512],  # Adjust according to your GPU memory
-                    stride=[16, 512, 512],
-                    extract_channel=extract_channel,
-                    threshold_file=threshold_file,
+                    patch_size=[patch_depth, patch_width, patch_width],  # Adjust according to your GPU memory
+                    stride=[stride_depth, stride_width, stride_width],
+                    extract_channel=nhs_channel,
+                    threshold_file=None,
                 )
 
                 tifffile.imwrite(
@@ -492,10 +481,61 @@ if __name__ == "__main__":
                 )
                 print(f"{time.strftime('%Y:%m:%d %H:%M:%S')} Saved image {output_file}!", flush=True)
                 success.append(file_name)
-            except Exception as e:
-                print(e)
-                failed.append((file_name, e))
+            # except Exception as e:
+            #     print(e)
+            #     failed.append((file_name, e))
 
         if len(failed) != 0:
             for f in failed:
                 print(f"{f[0]} failed!")
+
+@dataclass
+class File:
+    file_name: str
+    input_file_path: str
+    threshold_file: Optional[str] = None
+
+
+if __name__ == "__main__":
+    import argparse
+    
+    argparser = argparse.ArgumentParser()
+    
+    argparser.add_argument(
+        "--files",
+        type=str,
+        help="""JSON file specifying the training dataset. Example in data/Data3D.py looking like
+        [
+            {
+                "file_name": "WT1_D6_60X.tif",
+                "input_file_path": "/<ourPath>/MouseKidney_April2024/",
+            }
+    ]""",
+    )
+    argparser.add_argument("--nhs_channel", type=int, help="Which channel contains the NHS pan-staining.", default=2)
+    argparser.add_argument("--model_path", type=str, help="Path where the model ensemble lives")
+    argparser.add_argument("--model_prefix", type=str, help="Prefix  of the dirctory in which the models live", default='Run')
+    argparser.add_argument("--model_suffix", type=int, nargs='+', help="Suffix of the dirctory in which the models live", default=[1,2,3,4,5,6])
+    argparser.add_argument("--output_path", type=str, help="Path to where to save the predictiosn")
+    argparser.add_argument("--patch_depth", type=int, help="Size of prediction patch", default=32)
+    argparser.add_argument("--patch_width", type=int, help="Size of prediction patch", default=1024)
+    argparser.add_argument("--stride_depth", type=int, help="Size of prediction stride", default=16)
+    argparser.add_argument("--stride_width", type=int, help="Size of prediction stride", default=512)
+    args = argparser.parse_args()
+
+    with open(args.files, 'r') as file_dict:
+        files = json.load(file_dict)
+        files = [File(**f) for f in files]
+
+    make_ensemble_predictions(
+        files=files,
+        nhs_channel=args.nhs_channel,
+        output_path=args.output_path,
+        model_path=args.model_path,
+        model_prefix=args.model_prefix,
+        model_suffix=args.model_suffix,
+        patch_depth=args.patch_depth,
+        patch_width=args.patch_width,
+        stride_depth=args.stride_depth,
+        stride_width=args.stride_width,
+    )

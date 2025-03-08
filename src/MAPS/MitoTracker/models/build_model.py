@@ -1,16 +1,6 @@
 import torch
 from torch.nn import DataParallel
 
-from .BasicUNets import (
-    BasicSmallRegressionUNet,
-    BasicSmallUNet,
-    BasicUNet3D,
-    ConditionalGNUNet,
-    GNSmallUNet,
-    SmallUNeXt,
-)
-from .DoubleModel import DoubleModel
-
 
 class CustomDataParallel(DataParallel):
     def __getattr__(self, name):
@@ -21,6 +11,17 @@ class CustomDataParallel(DataParallel):
 
 
 def build_model(args):
+    # Late import to avoid cirulcar imports
+    from .BasicUNets import (
+        BasicSmallRegressionUNet,
+        BasicSmallUNet,
+        BasicUNet3D,
+        ConditionalGNUNet,
+        GNSmallUNet,
+        SmallUNeXt,
+    )
+    from .DoubleModel import DoubleModel
+    
     if args.model_name == "BasicUNet3D":
         model = BasicUNet3D(n_classes=args.num_classes, loss_fn=args.selected_loss, device=args.device)
     elif args.model_name == "SmallUNet3D":
