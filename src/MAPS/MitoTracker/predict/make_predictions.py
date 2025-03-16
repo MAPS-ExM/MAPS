@@ -1,7 +1,3 @@
-"""
-Run with subJob full_prediction.py  --memory 120 --env lightning --gpu_type 'a100-pcie-80gb'
-"""
-
 import json
 import os
 import re
@@ -21,12 +17,16 @@ from MAPS.MitoTracker.utils import Args, Tracker
 from MAPS.MitoTracker.utils.predict import predict_stack, remove_mirrored_slices
 
 
-def load_model_from_config(model_yaml: str) -> torch.nn.Module:
+def load_model_from_config(model_path: str, model_prefix: str, run: str) -> torch.nn.Module:
     """
     Builds a model from a configuration file and loads the best model.
     """
+    model_yaml = os.path.join(model_path, f"{model_prefix}_{run}", "args.yaml") if run != 0 else model_path
+    
     args = Args(base_yaml_file=model_yaml, extension_yaml_file=None)
     args.log_results = False  # Make sure we don't overwrite anything
+    args.path_output = model_path
+    args.run_name = f"{model_prefix}_{run}" 
     args.device = torch.device("cuda")
 
     # Initialise Tracker and set up output directories
@@ -128,9 +128,8 @@ def make_ensemble_predictions(files,
     mk_dir(output_path)
     for run in model_suffix:
         mk_dir(os.path.join(output_path, f"{model_prefix}_{run}"))
-        current_model_path = os.path.join(model_path, f"{model_prefix}_{run}", "args.yaml") if run != 0 else model_path
-        cur_model = load_model_from_config(current_model_path)
-        print(f"Loaded model from {current_model_path}", flush=True)
+        cur_model = load_model_from_config(model_path, model_prefix, run)
+        print(f"Loaded model from {model_prefix}_{run}", flush=True)
         for cur_file in files:
             file_name = cur_file.file_name
             try:
@@ -146,9 +145,10 @@ def make_ensemble_predictions(files,
                     Path(output_file).touch()
                     print(f"{'-' * 25}\n{time.strftime('%Y:%m:%d %H:%M:%S')}", shorten_filename(file_name), flush=True)
 
+                model_yaml = os.path.join(model_path, f"{model_prefix}_{run}", "args.yaml") if run != 0 else model_path
                 pred = make_prediction(
                     img_path=os.path.join(cur_file.input_file_path, file_name),
-                    model_yaml=current_model_path,
+                    model_yaml=model_yaml,
                     model=cur_model,
                     patch_size=[patch_depth, patch_width, patch_width],  # Adjust according to your GPU memory
                     stride=[stride_depth, stride_width, stride_width],

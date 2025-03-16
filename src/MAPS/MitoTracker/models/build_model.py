@@ -21,6 +21,7 @@ def build_model(args):
         SmallUNeXt,
     )
     from .DoubleModel import DoubleModel
+    from .PredictionModel import PredictionModel
     
     if args.model_name == "BasicUNet3D":
         model = BasicUNet3D(n_classes=args.num_classes, loss_fn=args.selected_loss, device=args.device)
@@ -64,6 +65,15 @@ def build_model(args):
             mask_threshold=0.5,
             loss_weight=args.loss_weights,
             pretrain=getattr(args, "pretrain", ""),
+            cat_emb_dim=getattr(args, "cat_emb_dim", 8),
+            device=args.device,
+        )
+    elif args.model_name == "PredictionModel":
+        model = PredictionModel(
+            n_classes=args.num_classes,
+            input_channels=getattr(args, "input_channels", 1),
+            mask_threshold=0.5,
+            model_type=getattr(args, "model_type", ""),
             cat_emb_dim=getattr(args, "cat_emb_dim", 8),
             device=args.device,
         )
