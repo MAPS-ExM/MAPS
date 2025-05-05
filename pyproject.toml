@@ -8,7 +8,7 @@ name = "MAPS"
 version = "0.1.0"
 description = "A Python package for MitoTracker and Immunolabeling analysis"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Alexander Sauer", email = "sauer.alexander@gmx.com"}
 ]
 license = {text = "MIT"}
 dependencies = []
@@ -26,3 +26,8 @@ extend-select = ["E501"]
 [tool.ruff.format]
 quote-style = "double"
 docstring-code-format = true
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]  # Adjust to your Python version if needed
+skip-string-normalization = false  # true to keep your quote style
