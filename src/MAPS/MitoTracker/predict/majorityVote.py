@@ -138,9 +138,17 @@ def process_Avoid_Ambig(path_runs, path_mv, path_target):
 
 
 if __name__ == "__main__":
-    output_dir = "YOUR_OUTPUT_FOLDER"
+    import argparse
+
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument(
+        "--source_path",
+        type=int,
+        help="Path to a folder which contains 'Run' folders that contains the predictions of the individual models",
+    )
+    args = argparser.parse_args()
 
     process_runs(
-        path_runs=f"{output_dir}/Run",
-        path_target=f"{output_dir}/MajorityVote",
+        path_runs=f"{args.source_path}/Run",
+        path_target=f"{args.source_path}/MajorityVote",
     )

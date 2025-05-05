@@ -338,7 +338,7 @@ def process_img(img, fragment_threshold=0.25, plot_hist=False):
     return img
 
 
-def process_file(file, path_target, fragment_threshold=0.25, plot_hist=False, create_tmp_files=True):
+def process_file(file, path_source, path_target, fragment_threshold=0.25, plot_hist=False, create_tmp_files=True):
     time.sleep(os.getpid() % 10 / 10)  # To avoid that all processes start at the same time
     output_file = os.path.join(path_target, file)
     if os.path.exists(output_file):
@@ -366,18 +366,42 @@ def process_file(file, path_target, fragment_threshold=0.25, plot_hist=False, cr
 
 
 if __name__ == "__main__":
-    path_source = "/well/rittscher/users/jyo949/tmp/HBSS_Test/MajorityVote"
-    path_target = "/well/rittscher/users/jyo949/tmp/HBSS_Test/Refined"
+    import argparse
 
-    files = sorted([f for f in os.listdir(path_source) if f.endswith(".tif") and not f.startswith(".")])
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument(
+        "--source_path",
+        type=int,
+        help="Path to a folder which contains the predictions as tif files which are supposed to be post-processed",
+    )
+    argparser.add_argument("--target_path", type=str, help="Path where to save the processed predictions.")
+    argparser.add_argument(
+        "--fragment_threshold", type=float, help="Threshold for removing fragmented predictions", default=0.25
+    )
+    argparser.add_argument("--n_workers", type=int, help="Number of workers for parallel processing", default=2)
+    argparser.add_argument(
+        "--create_tmp_files",
+        action="store_true",
+        help="Create an empty file when starting to process an image to signal that this file is currently processed",
+    )
+    args = argparser.parse_args()
+
+    files = sorted([f for f in os.listdir(args.source_path) if f.endswith(".tif") and not f.startswith(".")])
     print(f"Files to process: {len(files)}")
 
-    if not os.path.exists(path_target):
-        os.makedirs(path_target, exist_ok=True)
+    if not os.path.exists(args.target_path):
+        os.makedirs(args.target_path, exist_ok=True)
 
     # All files
     def process_file_wrapper(file):
-        process_file(file, path_target, fragment_threshold=0.25, plot_hist=False, create_tmp_files=False)
+        process_file(
+            file,
+            args.source_path,
+            args.target_path,
+            fragment_threshold=args.fragment_threshold,
+            plot_hist=False,
+            create_tmp_files=args.create_tmp_files,
+        )
 
-    with mp.Pool(2) as pool:
+    with mp.Pool(args.n_workers) as pool:
         pool.map(process_file_wrapper, files)
