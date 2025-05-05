@@ -22,11 +22,11 @@ def load_model_from_config(model_path: str, model_prefix: str, run: str) -> torc
     Builds a model from a configuration file and loads the best model.
     """
     model_yaml = os.path.join(model_path, f"{model_prefix}_{run}", "args.yaml") if run != 0 else model_path
-    
+
     args = Args(base_yaml_file=model_yaml, extension_yaml_file=None)
     args.log_results = False  # Make sure we don't overwrite anything
     args.path_output = model_path
-    args.run_name = f"{model_prefix}_{run}" 
+    args.run_name = f"{model_prefix}_{run}"
     args.device = torch.device("cuda")
 
     # Initialise Tracker and set up output directories
@@ -115,15 +115,19 @@ def mk_dir(path):
         os.makedirs(path, exist_ok=True)
 
 
-def make_ensemble_predictions(files, 
-                     nhs_channel, 
-                     output_path, 
-                     model_path, 
-                     model_prefix, 
-                     model_suffix,
-                     patch_depth = 32, patch_width = 1024,
-                     stride_depth = 16, stride_width = 512):
-
+def make_ensemble_predictions(
+    files,
+    nhs_channel,
+    output_path,
+    model_path,
+    model_prefix,
+    model_suffix,
+    patch_depth=32,
+    patch_width=1024,
+    stride_depth=16,
+    stride_width=512,
+    create_tmp_files=True,
+):
     success, failed = [], []
     mk_dir(output_path)
     for run in model_suffix:
@@ -141,9 +145,9 @@ def make_ensemble_predictions(files,
                 if os.path.exists(output_file):
                     print(f"File {output_file} already exists, skipping")
                     continue
-                else:
+                elif create_tmp_files:
                     Path(output_file).touch()
-                    print(f"{'-' * 25}\n{time.strftime('%Y:%m:%d %H:%M:%S')}", shorten_filename(file_name), flush=True)
+                print(f"{'-' * 25}\n{time.strftime('%Y:%m:%d %H:%M:%S')}", shorten_filename(file_name), flush=True)
 
                 model_yaml = os.path.join(model_path, f"{model_prefix}_{run}", "args.yaml") if run != 0 else model_path
                 pred = make_prediction(
@@ -169,6 +173,7 @@ def make_ensemble_predictions(files,
             for f in failed:
                 print(f"{f[0]} failed!")
 
+
 @dataclass
 class File:
     file_name: str
@@ -178,7 +183,7 @@ class File:
 
 if __name__ == "__main__":
     import argparse
-    
+
     argparser = argparse.ArgumentParser()
     argparser.add_argument(
         "--files",
@@ -193,16 +198,29 @@ if __name__ == "__main__":
     )
     argparser.add_argument("--nhs_channel", type=int, help="Which channel contains the NHS pan-staining.", default=2)
     argparser.add_argument("--model_path", type=str, help="Path where the model ensemble lives")
-    argparser.add_argument("--model_prefix", type=str, help="Prefix  of the dirctory in which the models live", default='Run')
-    argparser.add_argument("--model_suffix", type=int, nargs='+', help="Suffix of the dirctory in which the models live", default=[1,2,3,4,5,6])
+    argparser.add_argument(
+        "--model_prefix", type=str, help="Prefix  of the dirctory in which the models live", default="Run"
+    )
+    argparser.add_argument(
+        "--model_suffix",
+        type=int,
+        nargs="+",
+        help="Suffix of the dirctory in which the models live",
+        default=[1, 2, 3, 4, 5, 6],
+    )
     argparser.add_argument("--output_path", type=str, help="Path to where to save the predictiosn")
     argparser.add_argument("--patch_depth", type=int, help="Size of prediction patch", default=32)
     argparser.add_argument("--patch_width", type=int, help="Size of prediction patch", default=1024)
     argparser.add_argument("--stride_depth", type=int, help="Size of prediction stride", default=16)
     argparser.add_argument("--stride_width", type=int, help="Size of prediction stride", default=512)
+    argparser.add_argument(
+        "--create_tmp_files",
+        action="store_true",
+        help="Create an empty file when starting to process an image to signal that this file is currently processed",
+    )
     args = argparser.parse_args()
 
-    with open(args.files, 'r') as file_dict:
+    with open(args.files, "r") as file_dict:
         files = json.load(file_dict)
         files = [File(**f) for f in files]
 
@@ -217,4 +235,5 @@ if __name__ == "__main__":
         patch_width=args.patch_width,
         stride_depth=args.stride_depth,
         stride_width=args.stride_width,
+        create_tmp_files=args.create_tmp_files,
     )

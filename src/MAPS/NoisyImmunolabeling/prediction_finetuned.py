@@ -278,6 +278,11 @@ if __name__ == "__main__":
     argparser.add_argument("--stride_width", type=int, default=256)
     argparser.add_argument("--stride_depth", type=int, default=16)
     argparser.add_argument("--nhs_channel", type=int, default=1)
+    argparser.add_argument(
+        "--create_tmp_files",
+        action="store_true",
+        help="Create an empty file when starting to process an image to signal that this file is currently processed",
+    )
     argparser.add_argument("--device", type=int, default=0)
     args = argparser.parse_args()
 
@@ -297,9 +302,9 @@ if __name__ == "__main__":
         if os.path.exists(output_file):
             print(f"File {output_file} already exists, skipping")
             continue
-        else:
+        elif args.create_tmp_files:
             Path(output_file).touch()
-            print(f"{'-' * 25}\n{time.strftime('%Y:%m:%d %H:%M:%S')}", shorten_filename(file_name), flush=True)
+        print(f"{'-' * 25}\n{time.strftime('%Y:%m:%d %H:%M:%S')}", shorten_filename(file_name), flush=True)
         pred = make_prediction(
             img_path=os.path.join(input_file_path, file_name),
             model=cur_model,

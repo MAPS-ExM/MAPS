@@ -35,7 +35,7 @@ def find_mitos(annotation):
 def find_ind_extreme_coords(img, n_mitos):
     # indices is going to hold the min and max coordinate. Each row corresponds to one mito label
     indices = np.zeros((n_mitos, 2, 3))
-    indices[:, 0] = np.Inf
+    indices[:, 0] = np.inf
     for i in range(img.shape[0]):
         for j in range(img.shape[1]):
             for k in range(img.shape[2]):
@@ -338,12 +338,12 @@ def process_img(img, fragment_threshold=0.25, plot_hist=False):
     return img
 
 
-def process_file(file, path_target, fragment_threshold=0.25, plot_hist=False):
+def process_file(file, path_target, fragment_threshold=0.25, plot_hist=False, create_tmp_files=True):
     time.sleep(os.getpid() % 10 / 10)  # To avoid that all processes start at the same time
     output_file = os.path.join(path_target, file)
     if os.path.exists(output_file):
         return
-    else:
+    elif create_tmp_files:
         Path(output_file).touch()
     print(
         time.strftime("%H:%M:%S"),
@@ -377,7 +377,7 @@ if __name__ == "__main__":
 
     # All files
     def process_file_wrapper(file):
-        process_file(file, path_target, fragment_threshold=0.25, plot_hist=False)
+        process_file(file, path_target, fragment_threshold=0.25, plot_hist=False, create_tmp_files=False)
 
     with mp.Pool(2) as pool:
         pool.map(process_file_wrapper, files)
