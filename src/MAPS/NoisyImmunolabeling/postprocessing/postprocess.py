@@ -30,7 +30,7 @@ def find_mitos(annotation, verbose=False):
 def find_ind_extreme_coords(img, n_mitos):
     # indices is going to hold the min and max coordinate. Each row corresponds to one mito label
     indices = np.zeros((n_mitos, 2, 3))
-    indices[:, 0] = np.Inf
+    indices[:, 0] = np.inf
     for i in range(img.shape[0]):
         for j in range(img.shape[1]):
             for k in range(img.shape[2]):
