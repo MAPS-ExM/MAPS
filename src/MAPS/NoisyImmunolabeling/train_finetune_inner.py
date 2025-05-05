@@ -15,11 +15,11 @@ def main():
     args.add_argument("--run_name", type=str, default="V1")
     args.add_argument("--train_json", type=str, default="")
     args.add_argument("--test_json", type=str, default="")
-    args.add_argument("--path_result", type=str, default="/well/rittscher/users/jyo949/MAPS_test/FineTuned_model")
+    args.add_argument("--path_result", type=str, default="")
     args.add_argument(
         "--path_init_model",
         type=str,
-        default="/well/rittscher/users/jyo949/AntiBodySegKidney/MitoClustering/init_model/FirstModel/version_0/checkpoints/epoch=1-step=6272.ckpt",
+        default="",
     )
     args.add_argument("--lr", type=float, default=1e-4)
     args.add_argument("--weight_decay", type=float, default=1e-4)

@@ -7,18 +7,12 @@ import pytorch_lightning as pl
 import skimage
 import torch
 import json
-from typing import Union
 from einops import rearrange
 from skimage.morphology import isotropic_dilation
 from torch.utils.data import DataLoader, Dataset
 
-PATH_ORG = "/well/rittscher/projects/PanVision/data/FullStacks/Originals/MouseKidney_April2024"
-# PATH_ORG = '/well/rittscher/projects/PanVision/data/FullStacks/Originals/MouseKidney_May2024'
-PATH_PRED = "/well/rittscher/users/jyo949/tmp/KidneyTest/MajorityVote/"
-PATH_PRED_OUTLINE = "/well/rittscher/users/jyo949/AntiBodySegKidney/results/combined/"
 
-
-from MAPS.NoisyImmunolabeling.data import Sample, FileRecord
+from MAPS.NoisyImmunolabeling.data import FileRecord
 
 
 def read_data_config(dataset_config) -> List[FileRecord]:

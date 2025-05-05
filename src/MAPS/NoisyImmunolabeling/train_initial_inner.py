@@ -71,34 +71,17 @@ def main(train_files, test_files):
 
 
 if __name__ == "__main__":
-    path_nhs_T1 = "/well/rittscher/projects/PanVision/data/FullStacks/Originals/MouseKidney_April2024"
-    path_nhs_T2 = "/well/rittscher/projects/PanVision/data/FullStacks/Originals/MouseKidney_August2024_T2"
-    path_nhs_T3 = "/well/rittscher/projects/PanVision/data/FullStacks/Originals/MouseKidney_August2024"
+    path_nhs = "/EXAMPLE/data/"
 
-    path_pred_outline_WT1 = "/well/rittscher/users/jyo949/AntiBodySegKidney/results/combined/"
-    path_pred_outline_WT2 = "/well/rittscher/users/jyo949/AntiBodySegKidney/logs/Model_August_WT_L2_0_Weight_5_T2Data_AllFiles_Thres123/version_0/"
-    path_pred_outline_WT3 = "/well/rittscher/users/jyo949/AntiBodySegKidney/logs/Model_August_WT_L2_0_Weight_5_AugustData_AllFiles_Thres123/version_0/"
-    path_pred_inner_WT1 = "/well/rittscher/users/jyo949/tmp/KidneyTest/MajorityVote/"
-    path_pred_inner_WT2 = "/well/rittscher/users/jyo949/tmp/KidneyTest_AugustT2/MajorityVote"
-    path_pred_inner_WT3 = "/well/rittscher/users/jyo949/tmp/KidneyTest_AugustT3/MajorityVote/"
-
-    path_pred_outline_AKI1 = "/well/rittscher/users/jyo949/AntiBodySegKidney/results/combined/"
-    path_pred_outline_AKI2 = "/well/rittscher/users/jyo949/AntiBodySegKidney/logs/Model_August_AKI_L2_0_Weight_5_T2Data_AllFiles_Thres133/version_0/"
-    path_pred_outline_AKI3 = "/well/rittscher/users/jyo949/AntiBodySegKidney/logs/Model_August_AKI_L2_0_Weight_5_AugustData_AllFiles_Thres134/version_1/"
-    path_pred_inner_AKI1 = "/well/rittscher/users/jyo949/tmp/KidneyTest/MajorityVote/"
-    path_pred_inner_AKI2 = "/well/rittscher/users/jyo949/tmp/KidneyTest_AugustT2/MajorityVote"
-    path_pred_inner_AKI3 = "/well/rittscher/users/jyo949/tmp/KidneyTest_AugustT3/MajorityVote/"
+    path_pred_outline = "EXAMPLE/outline/"
+    path_pred_inner = "EXAMPLE/inner/"
 
     files = [
-        Sample("AKI1_D6_60X.tif", path_nhs_T1, path_pred_outline_AKI1, path_pred_inner_AKI1),
-        Sample("WT2_60X_0.tif", path_nhs_T2, path_pred_outline_WT2, path_pred_inner_WT2),
-        Sample("WT3_Mar_60X_0.tif", path_nhs_T3, path_pred_outline_WT3, path_pred_inner_WT3),
+        Sample("Sample1.tif", path_nhs, path_pred_outline, path_pred_inner),
     ]
 
     test_files = [
-        Sample("AKI2_D6_60X.tif", path_nhs_T1, path_pred_outline_AKI1, path_pred_inner_AKI1),
-        Sample("WT3_60X_4.tif", path_nhs_T2, path_pred_outline_WT2, path_pred_inner_WT2),
-        Sample("WT2_Mar_60X_6.tif", path_nhs_T3, path_pred_outline_WT3, path_pred_inner_WT3),
+        Sample("Sample2.tif", path_nhs, path_pred_outline, path_pred_inner),
     ]
 
     main(files, test_files)
