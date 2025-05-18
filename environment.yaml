@@ -1,0 +1,23 @@
+name: MAPS
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia
+  - defaults
+dependencies:
+  - python=3.12
+  - numpy
+  - pandas
+  - tifffile
+  - einops
+  - numba
+  - scikit-image
+  - matplotlib
+  - tqdm
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-lightning
+  - pytorch-cuda=11.8
+  - cuda-version=12.4
+  

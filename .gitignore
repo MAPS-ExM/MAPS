@@ -2,6 +2,8 @@
 *.egg-info
 *.pyc
 ._*
-.sh
+*.sh
 
 *tmp.sh
+*.json
+.gitignore

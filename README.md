@@ -45,6 +45,11 @@ These pre-trained models can be run with `/predict/make_predictions.py` and shou
 ## Nucleus
 Some workflows might require the additional segmentation of the nucleus. Have a look at [this](https://github.com/AlexSauer/NucleusPanVision) repo for this.
 
+## Install
+- Adjust the cuda version in `environment.yaml` based on your GPU.
+- Create a new conda environment with `conda env create -f environment.yaml`
+- Install the package with `pip install -e .`
+
 ## Errors:
 - If you run the scripts like `train_outline.py` from within their directories, update the `PYTHONPATH` variable like
 `export PYTHONPATH='YOURPATH/src/MAPS/':$PYTHONPATH` to make sure all imports work.

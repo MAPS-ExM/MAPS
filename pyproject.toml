@@ -11,7 +11,14 @@ authors = [
     {name = "Alexander Sauer", email = "sauer.alexander@gmx.com"}
 ]
 license = {text = "MIT"}
-dependencies = []
+dependencies = [
+    "numpy>=1.26",
+    "pytorch-lightning>=2.0",
+    "pytorch>=2.0"
+    "numba>=0.59",
+    "scipy>=1.12",
+    "scikit-image>=0.22",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
