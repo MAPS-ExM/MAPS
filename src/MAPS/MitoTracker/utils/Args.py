@@ -62,8 +62,8 @@ class Args:
         else:
             self.device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
 
-        for var in ['lr', 'l2_decay']:
-            self.convert_scientific_notation_to_float(var)
+        # for var in ['lr', 'l2_decay']:
+        #     self.convert_scientific_notation_to_float(var)
         for var in ['debug_n_samples', 'input_channels']:
             self.convert_to_int(var)
 
