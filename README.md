@@ -6,7 +6,7 @@ In the following, we describe two approaches depending on the amount of noice co
 # Noisy Antibodies 
 ![KidneyWorkflow](./docs/KidneyWorkflow.png)
 
-If your data does not allow to derive prediction targets masks in a simple way (like via morphological operations), then this is the case to consider. This corresponds to the analysis of the kidney tissue in the paper and the workflow is illustrated in the figure above. We first train a model to predict the mitochondria outline from the antibodies before fine-tuning the model to the inner structure. The code for this workflow is contained in `NoisyImmunolabeling`
+If your data does not allow to derive prediction targets masks in a simple way (like via morphological operations), then this is the case to consider, otherwise see the next section. This corresponds to the analysis of the kidney tissue in the paper and the workflow is illustrated in the figure above. We first train a model to predict the mitochondria outline from the antibodies before fine-tuning the model to the inner structure. The code for this workflow is contained in `NoisyImmunolabeling`
 
 ### 1. Mitochondria outline
 What to do when new data arrives:
@@ -49,6 +49,9 @@ Some workflows might require the additional segmentation of the nucleus. Have a 
 - Adjust the cuda version in `environment.yaml` based on your GPU.
 - Create a new conda environment with `conda env create -f environment.yaml`
 - Install the package with `pip install -e .`
+
+The software was written on OS: Rocky Linux 8.10 (Green Obsidian) / 4.18.0-553.45.1.el8_10.x86_64. Quadro RTX 6000 and A100-pcie-80gb were used with CUDA version 12.8.
+The specific python environment can be [re-created](https://github.com/conda/conda-lock) based on the `conda.lock` file.
 
 ## Errors:
 - If you run the scripts like `train_outline.py` from within their directories, update the `PYTHONPATH` variable like

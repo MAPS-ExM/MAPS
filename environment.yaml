@@ -1,8 +1,8 @@
 name: MAPS
 channels:
-  - conda-forge
   - pytorch
   - nvidia
+  - conda-forge
   - defaults
 dependencies:
   - python=3.12
@@ -16,8 +16,10 @@ dependencies:
   - tqdm
   - pytorch
   - torchvision
+  - tensorboard
   - torchaudio
   - pytorch-lightning
-  - pytorch-cuda=11.8
-  - cuda-version=12.4
+  - pytorch-cuda=12.1
+  - pip
+  - pip:
   

@@ -13,11 +13,17 @@ authors = [
 license = {text = "MIT"}
 dependencies = [
     "numpy>=1.26",
-    "pytorch-lightning>=2.0",
-    "pytorch>=2.0"
+    "pandas>=2.0",
+    "tifffile",
+    "einops",
     "numba>=0.59",
-    "scipy>=1.12",
     "scikit-image>=0.22",
+    "matplotlib",
+    "tqdm",
+    "torch>=2.0",
+    "torchvision",
+    "torchaudio",
+    "pytorch-lightning>=2.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -36,5 +42,5 @@ docstring-code-format = true
 
 [tool.black]
 line-length = 120
-target-version = ["py311"]  # Adjust to your Python version if needed
-skip-string-normalization = false  # true to keep your quote style
+target-version = ["py312"]  # Match Python 3.12 in environment.yaml
+skip-string-normalization = false
