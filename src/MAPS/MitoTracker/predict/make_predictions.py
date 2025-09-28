@@ -195,9 +195,11 @@ if __name__ == "__main__":
                 "input_file_path": "/<ourPath>/MouseKidney_April2024/",
             }
     ]""",
+        required=True,
     )
+    argparser.add_argument("--output_path", type=str, help="Path to where to save the predictiosn", required=True)
     argparser.add_argument("--nhs_channel", type=int, help="Which channel contains the NHS pan-staining.", default=2)
-    argparser.add_argument("--model_path", type=str, help="Path where the model ensemble lives")
+    argparser.add_argument("--model_path", type=str, help="Path where the model ensemble lives", required=True)
     argparser.add_argument(
         "--model_prefix", type=str, help="Prefix  of the dirctory in which the models live", default="Run"
     )
@@ -208,7 +210,6 @@ if __name__ == "__main__":
         help="Suffix of the dirctory in which the models live",
         default=[1, 2, 3, 4, 5, 6],
     )
-    argparser.add_argument("--output_path", type=str, help="Path to where to save the predictiosn")
     argparser.add_argument("--patch_depth", type=int, help="Size of prediction patch", default=32)
     argparser.add_argument("--patch_width", type=int, help="Size of prediction patch", default=1024)
     argparser.add_argument("--stride_depth", type=int, help="Size of prediction stride", default=16)
