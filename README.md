@@ -31,6 +31,8 @@ Depending on the localisation and accuracy of your immunolabelling you might hav
  - b: If we want to differentiate between stripped and non stripped: Use the same notebook but annotate only the difference between lamellar and non-lamellar structures.
 4. Use the annotated data to fine-tune theodel with `train_fine_tune_inner.py`.
 
+An example can be found [here](https://drive.google.com/drive/folders/1rOUEcnpw_hRCQrZbTtBN4cFgpCq5eGPT?usp=sharing).
+
 # Precise Additional Dye - MitoTracker
 This case corresponds to the scenario in which an additional dye like MitoTracker allows to automatically derive segmentation masks that work as the prediction targets. 
 ![MitoTracker](./docs/MitoTracker.png)
@@ -39,7 +41,7 @@ If the prediction target can be outlined well enough by the additional dye, any 
 The work presented in our paper however only uses the MitoTracker for the general outline of the structure and then fine-tunes an additional encoder to segment the inner structure.
 The code for this workflow is found in the `MitoTracker` directory.
 Pretrained models can be found [here](https://drive.google.com/drive/folders/1hziGW7KhJJamqSZKYRiE0BTvMJCi43xn?usp=share_link).
-These pre-trained models can be run with `/predict/make_predictions.py` and should be followed by `majorityVote.py` and `postprocess.py` to combine the ensemble predictions and apply basic post-processing.
+These pre-trained models can be run with `/predict/make_predictions.py` and should be followed by `majorityVote.py` and `postprocess.py` to combine the ensemble predictions and apply basic post-processing. An example can be found [here](https://drive.google.com/drive/folders/1hziGW7KhJJamqSZKYRiE0BTvMJCi43xn?usp=share_link).
 
 
 ## Nucleus
@@ -50,7 +52,7 @@ Some workflows might require the additional segmentation of the nucleus. Have a 
 - Create a new conda environment with `conda env create -f environment.yaml`
 - Install the package with `pip install -e .`
 
-The software was written on OS: Rocky Linux 8.10 (Green Obsidian) / 4.18.0-553.45.1.el8_10.x86_64. Quadro RTX 6000 and A100-pcie-80gb were used with CUDA version 12.8.
+The software was written on OS: Rocky Linux 8.10 (Green Obsidian) / 4.18.0-553.45.1.el8_10.x86_64. Quadro RTX 6000 and A100-pcie-80gb were used with CUDA version 12.8. An image cube like the examples liked above is processed in about 10minutes.
 The specific python environment can be [re-created](https://github.com/conda/conda-lock) based on the `conda.lock` file.
 
 ## Errors:
