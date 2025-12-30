@@ -8,14 +8,20 @@ In the following, we describe two approaches depending on the amount of noice co
 
 If your data does not allow to derive prediction targets masks in a simple way (like via morphological operations), then this is the case to consider, otherwise see the next section. This corresponds to the analysis of the kidney tissue in the paper and the workflow is illustrated in the figure above. We first train a model to predict the mitochondria outline from the antibodies before fine-tuning the model to the inner structure. The code for this workflow is contained in `NoisyImmunolabeling`
 
-### 1. Mitochondria outline
-What to do when new data arrives:
-1. Test if the data is similar enough so that the old model just works. Pre-trained models are available [here](https://drive.google.com/drive/folders/1rOUEcnpw_hRCQrZbTtBN4cFgpCq5eGPT?usp=sharing).
-    1. Run `NoisyImmunolabeling/prediction_finetuned.py`
-    - If yes, perfect, nothing to be done.
+Test if the data is similar enough so that the old model just works. Pre-trained models are available [here](https://drive.google.com/drive/folders/1rOUEcnpw_hRCQrZbTtBN4cFgpCq5eGPT?usp=sharing).
+    1. Run `NoisyImmunolabeling/prediction_finetuned.py` like 
+    ```
+    python src/MAPS/NoisyImmunolabeling/prediction_finetuned.py \
+           --model_path <YOUR_PATH>/KidneyModel.ckpt \
+           --output_path <YOUR_PATH>/pred  \
+           --input_file_path <YOUR_PATH>/WT1_D6_60X.tif 
+    ```
+    - If you are happy with the prediction quality, perfect, nothing to be done.
     - If no, we have to retrain following the next steps
-2. Run some experiments with `NoisyImmunolabeling/train_outline.py` with a small (~3) number of files to find the appropriate lower threshold for the immunolabelling/ antibody (AB) value. Visual inspection gives a first clue and finding the proper value can normally be achieved with less than 5 attempts. The methodolgy is described in the paper.
-3. Use this model to get the mitochondria outline for the new batch (automatically created with `train_outline.py`) or for other data with `prediction_outline.py`.
+
+### 1. Mitochondria outline
+1. Run  `NoisyImmunolabeling/train_outline.py` with a small (~3) number of files to find the appropriate lower threshold for the immunolabelling/ antibody (AB) value. Visual inspection gives a first clue and finding the proper value can normally be achieved with less than 5 attempts. The methodolgy is described in the paper.
+2. Use this model to get the mitochondria outline for the new batch (automatically created with `train_outline.py`) or for other data with `prediction_outline.py`.
 
 If everything works out fine, you should be able to predict the outline of the target organelles (mitochondria in this example) fairly accurately:
 ![OutlineExample](./docs/OutlineExample.png)
@@ -41,19 +47,25 @@ If the prediction target can be outlined well enough by the additional dye, any 
 The work presented in our paper however only uses the MitoTracker for the general outline of the structure and then fine-tunes an additional encoder to segment the inner structure.
 The code for this workflow is found in the `MitoTracker` directory.
 Pretrained models can be found [here](https://drive.google.com/drive/folders/1hziGW7KhJJamqSZKYRiE0BTvMJCi43xn?usp=share_link).
-These pre-trained models can be run with `/predict/make_predictions.py` and should be followed by `majorityVote.py` and `postprocess.py` to combine the ensemble predictions and apply basic post-processing. An example can be found [here](https://drive.google.com/drive/folders/1hziGW7KhJJamqSZKYRiE0BTvMJCi43xn?usp=share_link).
+These pre-trained models can be run with `MitoTracker/predict/make_predictions.py` and should be followed by `MitoTracker/predict/majorityVote.py` and `postprocess.py` to combine the ensemble predictions and apply basic post-processing. An example can be found [here](https://drive.google.com/drive/folders/1hziGW7KhJJamqSZKYRiE0BTvMJCi43xn?usp=share_link).
 
 
 ## Nucleus
 Some workflows might require the additional segmentation of the nucleus. Have a look at [this](https://github.com/AlexSauer/NucleusPanVision) repo for this.
 
 ## Install
+The specific python environment can be [re-created](https://github.com/conda/conda-lock) based on the `conda.lock` file with 
+```
+conda-lock install -n MAPS conda-lock.yml
+pip install -e .
+```
+
+Otherwise, you can create a new environment like:
 - Adjust the cuda version in `environment.yaml` based on your GPU.
 - Create a new conda environment with `conda env create -f environment.yaml`
 - Install the package with `pip install -e .`
 
 The software was written on OS: Rocky Linux 8.10 (Green Obsidian) / 4.18.0-553.45.1.el8_10.x86_64. Quadro RTX 6000 and A100-pcie-80gb were used with CUDA version 12.8. An image cube like the examples liked above is processed in about 10minutes.
-The specific python environment can be [re-created](https://github.com/conda/conda-lock) based on the `conda.lock` file.
 
 ## Errors:
 - If you run the scripts like `train_outline.py` from within their directories, update the `PYTHONPATH` variable like

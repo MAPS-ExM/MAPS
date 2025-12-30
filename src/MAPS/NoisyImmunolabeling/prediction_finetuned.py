@@ -251,8 +251,8 @@ if __name__ == "__main__":
     import argparse
 
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("--output_path", type=str)
-    argparser.add_argument("--model_path", type=str)
+    argparser.add_argument("--output_path", type=str, required=True)
+    argparser.add_argument("--model_path", type=str, required=True)
     argparser.add_argument(
         "--input_file_path",
         type=str,
@@ -285,6 +285,9 @@ if __name__ == "__main__":
     )
     argparser.add_argument("--device", type=int, default=0)
     args = argparser.parse_args()
+
+    if (not args.input_file_path) and (not args.input_files_json):
+        raise ValueError("You must provide either input_path or input_paths_json as an argument!")
 
     if os.path.isfile(args.input_file_path):
         filenames = [(os.path.basename(args.input_file_path), os.path.dirname(args.input_file_path))]
