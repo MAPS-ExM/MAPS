@@ -62,7 +62,7 @@ pip install -e .
 
 Otherwise, you can create a new environment like:
 - Adjust the cuda version in `environment.yaml` based on your GPU.
-- Create a new conda environment with `conda env create -f environment.yaml`
+- Create a new conda environment with `conda env create -f environment.yaml` where we use conda 24.1.2.
 - Install the package with `pip install -e .`
 
 The software was written on OS: Rocky Linux 8.10 (Green Obsidian) / 4.18.0-553.45.1.el8_10.x86_64. Quadro RTX 6000 and A100-pcie-80gb were used with CUDA version 12.8. An image cube like the examples liked above is processed in about 10minutes.
