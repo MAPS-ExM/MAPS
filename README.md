@@ -8,16 +8,16 @@ In the following, we describe two approaches depending on the amount of noice co
 
 If your data does not allow to derive prediction targets masks in a simple way (like via morphological operations), then this is the case to consider, otherwise see the next section. This corresponds to the analysis of the kidney tissue in the paper and the workflow is illustrated in the figure above. We first train a model to predict the mitochondria outline from the antibodies before fine-tuning the model to the inner structure. The code for this workflow is contained in `NoisyImmunolabeling`
 
-Test if the data is similar enough so that the old model just works. Pre-trained models are available [here](https://drive.google.com/drive/folders/1rOUEcnpw_hRCQrZbTtBN4cFgpCq5eGPT?usp=sharing).
-    1. Run `NoisyImmunolabeling/prediction_finetuned.py` like 
-    ```
-    python src/MAPS/NoisyImmunolabeling/prediction_finetuned.py \
-           --model_path <YOUR_PATH>/KidneyModel.ckpt \
-           --output_path <YOUR_PATH>/pred  \
-           --input_file_path <YOUR_PATH>/WT1_D6_60X.tif 
-    ```
-    - If you are happy with the prediction quality, perfect, nothing to be done.
-    - If no, we have to retrain following the next steps
+Test if the data is similar enough so that the old model just works. Pre-trained models are available [here](https://drive.google.com/drive/folders/1rOUEcnpw_hRCQrZbTtBN4cFgpCq5eGPT?usp=sharing). Run `NoisyImmunolabeling/prediction_finetuned.py` like 
+
+```bash
+python src/MAPS/NoisyImmunolabeling/prediction_finetuned.py \
+        --model_path <YOUR_PATH>/KidneyModel.ckpt \
+        --output_path <YOUR_PATH>/pred  \
+        --input_file_path <YOUR_PATH>/WT1_D6_60X.tif 
+```
+- If you are happy with the prediction quality, perfect, nothing to be done.
+- If no, we have to retrain following the next steps
 
 ### 1. Mitochondria outline
 1. Run  `NoisyImmunolabeling/train_outline.py` with a small (~3) number of files to find the appropriate lower threshold for the immunolabelling/ antibody (AB) value. Visual inspection gives a first clue and finding the proper value can normally be achieved with less than 5 attempts. The methodolgy is described in the paper.
